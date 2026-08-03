@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
-<script src="https://alcdn.msauth.net/browser/3.18.0/js/msal-browser.min.js"></script>
+<script src="msal-browser.min.js"></script>
 <style>
   :root{
     --navy:#1F3864; --navy-deep:#132745; --rust:#C55A11; --rust-light:#FCE4D6;
@@ -156,7 +156,7 @@
 
 <main>
   <div class="view active" id="view-gate">
-    <div class="gate" id="gateContent"></div>
+    <div class="gate" id="gateContent"><div class="spinner"></div><h2>Carregando...</h2></div>
   </div>
   <div class="view" id="view-panel"></div>
   <div class="view" id="view-group"></div>
@@ -251,27 +251,34 @@ function setGate(html){ document.getElementById('gateContent').innerHTML = html;
 // AUTH
 // =========================================================
 async function initAuth(){
-  msalInstance = new msal.PublicClientApplication(MSAL_CONFIG);
-  await msalInstance.initialize();
-
-  try{
-    const resp = await msalInstance.handleRedirectPromise();
-    if (resp && resp.account) account = resp.account;
-  } catch(e){
-    showAuthError(e);
+  if (typeof msal === 'undefined'){
+    setGate(gateHtml({
+      icon:'⚠️',
+      title:'Biblioteca de login não carregou',
+      body:'O arquivo msal-browser.min.js não foi encontrado. Confirma se ele foi enviado pro GitHub junto com o index.html, na mesma pasta.',
+    }));
     return;
   }
+  try{
+    msalInstance = new msal.PublicClientApplication(MSAL_CONFIG);
+    await msalInstance.initialize();
 
-  const accounts = msalInstance.getAllAccounts();
-  if (!account && accounts.length > 0) account = accounts[0];
+    const resp = await msalInstance.handleRedirectPromise();
+    if (resp && resp.account) account = resp.account;
 
-  if (account){
-    msalInstance.setActiveAccount(account);
-    document.getElementById('topActions').style.display = 'flex';
-    document.getElementById('whoAmI').textContent = account.username || '';
-    loadAllData();
-  } else {
-    showLoginScreen();
+    const accounts = msalInstance.getAllAccounts();
+    if (!account && accounts.length > 0) account = accounts[0];
+
+    if (account){
+      msalInstance.setActiveAccount(account);
+      document.getElementById('topActions').style.display = 'flex';
+      document.getElementById('whoAmI').textContent = account.username || '';
+      loadAllData();
+    } else {
+      showLoginScreen();
+    }
+  } catch(e){
+    showAuthError(e);
   }
 }
 
