@@ -431,6 +431,33 @@ function parsePanel(values){
   };
 }
 
+function findGrupoColumn(values, normToPanel){
+  const header = values[0];
+  const dataRows = values.slice(1, Math.min(values.length, 200)); // sample first ~200 rows is plenty
+  let bestCol = header.length - 1, bestScore = -1;
+  // scan every column; the classification column has no header text and its values
+  // mostly normalize into known panel group labels
+  for (let c = 0; c < header.length; c++){
+    let score = 0, nonEmpty = 0;
+    for (const row of dataRows){
+      const v = row[c];
+      if (v == null || String(v).trim() === '') continue;
+      nonEmpty++;
+      if (normToPanel[norm(v)]) score++;
+    }
+    if (nonEmpty === 0) continue;
+    const ratio = score / nonEmpty;
+    // prefer columns with no header label (the real BV column is unlabeled) and high match ratio
+    const hasHeader = header[c] != null && String(header[c]).trim() !== '';
+    const weighted = ratio - (hasHeader ? 0.5 : 0); // penalize labeled columns so we don't match a real business column by coincidence
+    if (ratio > 0.6 && weighted > bestScore){
+      bestScore = weighted;
+      bestCol = c;
+    }
+  }
+  return bestCol;
+}
+
 function parseClients(values){
   const header = values[0];
   const iCliente = colIndex(header, 'Cliente');
@@ -439,12 +466,13 @@ function parseClients(values){
   const iVenda = colIndex(header, 'Valor de venda bruto', 'Valor de venda');
   const iCca = colIndex(header, 'CCA');
   const iAging = colIndex(header, 'Aging Inadimplencia', 'Aging');
-  const iGrupo = header.length - 1; // BV: last column, unlabeled helper — classification group
 
   const normToPanel = {};
   PANEL_GROUPS.forEach(g => normToPanel[norm(g)] = g);
   normToPanel[norm('Em Contato/Negociação')] = 'Em Contato/negociação';
   normToPanel[norm('Aprovados - Em Negociação')] = 'Aprovados - Em Negociação  SPL';
+
+  const iGrupo = findGrupoColumn(values, normToPanel);
 
   const out = [];
   for (let r = 1; r < values.length; r++){
