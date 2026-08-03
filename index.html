@@ -176,7 +176,7 @@ const MSAL_CONFIG = {
   cache: { cacheLocation: "sessionStorage", storeAuthStateInCookie: false },
 };
 const GRAPH_SCOPES = ["Files.Read", "Sites.Read.All"];
-const SHAREPOINT_URL = "https://splengbr.sharepoint.com/:x:/s/splengenharia/IQA4ouX82iGDQaAFCU0KnnvDARi-hpgpOxD5YTLp_BpS9K8?e=ECy8uE";
+const SHAREPOINT_URL = "https://splengbr.sharepoint.com/:x:/s/splengenharia/IQA4ouX82iGDQaAFCU0KnnvDARi-hpgpOxD5YTLp_BpS9K8?e=rDrnIV";
 const SHEET_PAINEL = "Painel Acompanhamento (3)";
 const SHEET_ESTRATEGICO = "Acomp Estratégico";
 const SHEET_ATENDIMENTOS = "Registro de atendimentos";
@@ -345,11 +345,30 @@ function encodeSharingUrl(url){
   return 'u!' + b64;
 }
 
-async function graphGet(url, token){
-  const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+async function graphGet(url, token, sessionId, attempt=1){
+  const headers = { Authorization: `Bearer ${token}` };
+  if (sessionId) headers['workbook-session-id'] = sessionId;
+  const res = await fetch(url, { headers });
   if (!res.ok){
+    if ([502,503,504].includes(res.status) && attempt < 3){
+      await new Promise(r => setTimeout(r, 1500 * attempt));
+      return graphGet(url, token, sessionId, attempt + 1);
+    }
     const body = await res.text().catch(()=> '');
     throw new Error(`Graph API respondeu ${res.status} para ${url}\n${body.slice(0,300)}`);
+  }
+  return res.json();
+}
+
+async function graphPost(url, token, body){
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body || {}),
+  });
+  if (!res.ok){
+    const t = await res.text().catch(()=> '');
+    throw new Error(`Graph API respondeu ${res.status} para ${url}\n${t.slice(0,300)}`);
   }
   return res.json();
 }
@@ -369,17 +388,28 @@ async function loadAllData(){
     const itemId = driveItem.id;
     const base = `https://graph.microsoft.com/v1.0/drives/${driveId}/items/${itemId}/workbook`;
 
+    setStep('Abrindo a planilha (pode demorar um pouco na primeira vez)...');
+    let sessionId = null;
+    try{
+      const session = await graphPost(`${base}/createSession`, token, { persistChanges: false });
+      sessionId = session.id;
+    } catch(e){ /* if session creation fails, fall back to sessionless requests */ }
+
     setStep('Lendo o painel...');
-    const panelRange = await graphGet(`${base}/worksheets('${encodeURIComponent(SHEET_PAINEL)}')/range(address='D9:O71')`, token);
+    const panelRange = await graphGet(`${base}/worksheets('${encodeURIComponent(SHEET_PAINEL)}')/range(address='D9:O71')`, token, sessionId);
     DATA = parsePanel(panelRange.values);
 
     setStep('Lendo a carteira de clientes...');
-    const estRange = await graphGet(`${base}/worksheets('${encodeURIComponent(SHEET_ESTRATEGICO)}')/usedRange(valuesOnly=true)`, token);
+    const estRange = await graphGet(`${base}/worksheets('${encodeURIComponent(SHEET_ESTRATEGICO)}')/usedRange(valuesOnly=true)`, token, sessionId);
     CLIENTS = parseClients(estRange.values);
 
     setStep('Lendo histórico de atendimentos...');
-    const atendRange = await graphGet(`${base}/worksheets('${encodeURIComponent(SHEET_ATENDIMENTOS)}')/usedRange(valuesOnly=true)`, token);
+    const atendRange = await graphGet(`${base}/worksheets('${encodeURIComponent(SHEET_ATENDIMENTOS)}')/usedRange(valuesOnly=true)`, token, sessionId);
     ATEND = parseAtendimentos(atendRange.values);
+
+    if (sessionId){
+      graphPost(`${base}/closeSession`, token, {}).catch(()=>{});
+    }
 
     STATE = { view:'panel', group:null, kind:null, client:null };
     renderPanel();
@@ -388,7 +418,7 @@ async function loadAllData(){
     setGate(gateHtml({
       icon:'⚠️',
       title:'Não consegui carregar os dados',
-      body:'Pode ser permissão faltando, o link do SharePoint mudou, ou nome de aba diferente. Detalhe técnico abaixo:',
+      body:'Pode ser permissão faltando, o link do SharePoint mudou, nome de aba diferente, ou a Microsoft demorou demais pra responder (comum na primeira leitura do dia). Detalhe técnico abaixo:',
       extra:`<div class="err-box">${esc(e && e.message ? e.message : String(e))}</div>
         <button class="retry-btn" id="retryLoadBtn">Tentar de novo</button>`
     }));
