@@ -3,12 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Acompanhamento Repasses — Acqua</title>
+<title>Central Financeira SPL</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <script src="msal-browser.min.js"></script>
 <style>
+
   :root{
     --navy:#1F3864; --navy-deep:#132745; --rust:#C55A11; --rust-light:#FCE4D6;
     --green:#4C7A3D; --green-light:#E7F0E3; --red:#B23A2E; --red-light:#FBE7E4;
@@ -139,33 +140,205 @@
     font-size:12.5px; line-height:1.5; text-align:left; max-width:340px; margin-bottom:16px; word-break:break-word;}
   .retry-btn{background:var(--rust); color:#fff; border:none; padding:10px 20px; border-radius:10px; font-size:13px; font-weight:600;}
   .step{font-size:11.5px; color:var(--ink-soft); margin-top:16px;}
+
+/* ---- Financiamento-only classes ---- */
+  .pill{font-family:'IBM Plex Mono',monospace; font-size:11.5px; background:rgba(255,255,255,.1);
+    border:1px solid rgba(255,255,255,.22); color:#EDF1F7; padding:4px 10px; border-radius:999px;}
+  .tabpanel{display:none;}
+  .tabpanel.active{display:block; animation:fadein .18s ease;}
+  p.lede{font-size:13.5px; color:var(--ink-soft); line-height:1.5; margin:0 0 14px;}
+  .kpi-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  .kpi{background:var(--card); border:1px solid var(--line); border-left:4px solid var(--navy);
+    border-radius:var(--radius); padding:12px 13px;}
+  .kpi.rust{border-left-color:var(--rust);}
+  .kpi.green{border-left-color:var(--green);}
+  .kpi.red{border-left-color:var(--red);}
+  .kpi .label{font-size:10.5px; font-weight:600; text-transform:uppercase; letter-spacing:.05em;
+    color:var(--ink-soft); margin-bottom:5px;}
+  .kpi .value{font-family:'IBM Plex Mono',monospace; font-size:18px; font-weight:600; color:var(--navy); line-height:1.15;}
+  .kpi.rust .value{color:var(--rust);} .kpi.red .value{color:var(--red);} .kpi.green .value{color:var(--green);}
+  .kpi .sub{font-size:11px; color:var(--ink-soft); margin-top:4px;}
+  .chart-wrap.tall{height:270px;}
+  .table-scroll{overflow-x:auto; border:1px solid var(--line); border-radius:var(--radius); background:var(--card); -webkit-overflow-scrolling:touch;}
+  table{border-collapse:collapse; width:100%; font-size:12px; min-width:560px;}
+  table.wide{min-width:760px;}
+  thead th{background:var(--navy); color:#fff; font-weight:600; font-size:10.5px; text-transform:uppercase;
+    letter-spacing:.03em; padding:9px 10px; text-align:left; white-space:nowrap; position:sticky; top:0;}
+  tbody td{padding:8px 10px; border-top:1px solid var(--line); white-space:nowrap; color:var(--ink);}
+  tbody tr:nth-child(even){background:#FAFBFC;}
+  td.num, th.num{text-align:center; font-family:'IBM Plex Mono',monospace;}
+  td.name-col, th.name-col{position:sticky; left:0; background:inherit; font-weight:600; box-shadow:1px 0 0 var(--line);}
+  thead th.name-col{background:var(--navy);}
+  .status-chip{display:inline-block; font-size:10.5px; font-weight:700; padding:2px 8px; border-radius:999px;}
+  .status-chip.andamento{background:var(--rust-light); color:var(--rust);}
+  .status-chip.concluido{background:var(--green-light); color:var(--green);}
+  .flag{font-weight:700;}
+  .flag.crit{color:var(--red);}
+  .flag.warn{color:var(--rust);}
+  .callout{border-radius:var(--radius); padding:12px 13px; margin-bottom:14px; font-size:12.5px; line-height:1.5;}
+  .callout.red{background:var(--red-light); border:1px solid #EFC3BC; color:#7A251C;}
+  .callout.green{background:var(--green-light); border:1px solid #C7DBBF; color:#345128;}
+  .callout ul{margin:6px 0 0; padding-left:18px;}
+  .callout li{margin-bottom:3px;}
+  nav.tabbar{position:fixed; bottom:0; left:0; right:0; z-index:30; background:#fff;
+    border-top:1px solid var(--line); display:flex; padding:6px 4px calc(6px + env(safe-area-inset-bottom));
+    box-shadow:0 -2px 10px rgba(20,30,50,.06);}
+  nav.tabbar button{flex:1; background:none; border:none; display:flex; flex-direction:column; align-items:center;
+    gap:3px; padding:6px 2px; color:var(--ink-soft); font-family:'IBM Plex Sans'; font-size:10.5px; font-weight:600;
+    border-radius:10px;}
+  nav.tabbar button svg{width:20px; height:20px; stroke:var(--ink-soft); fill:none; stroke-width:1.8;}
+  nav.tabbar button.active{color:var(--rust);}
+  nav.tabbar button.active svg{stroke:var(--rust);}
+  nav.tabbar button:focus-visible{outline:2px solid var(--rust); outline-offset:2px;}
+  .subhead{font-size:12.5px; font-weight:700; color:var(--ink); margin:14px 0 6px;}
+
+/* ---- HUB screen ---- */
+  .screen{display:none;}
+  .screen.active{display:block; animation:fadein .16s ease;}
+  main{padding:16px 14px 28px; max-width:720px; margin:0 auto;}
+  main:has(#screen-associativos.active){padding-bottom:92px;}
+
+  .hub-lede{font-size:13.5px; color:var(--ink-soft); line-height:1.5; margin:2px 0 16px;}
+  .hub-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+  .hub-card{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:20px 12px;
+    min-height:128px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px;
+    text-align:center; cursor:pointer;}
+  .hub-card:active{transform:scale(.97);}
+  .hub-card .badge-ic{width:44px; height:44px; border-radius:12px; display:flex; align-items:center; justify-content:center;
+    font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:15px; color:#fff;}
+  .hub-card .badge-ic svg{width:22px; height:22px; stroke:#fff; fill:none; stroke-width:1.8;}
+  .hub-card .t{font-size:12.5px; font-weight:700; color:var(--ink);}
+  .hub-card.soon{opacity:.82;}
+  .hub-card .soon-chip{font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.04em;
+    background:var(--rust-light); color:var(--rust); padding:2px 8px; border-radius:999px;}
+
+  .back-btn{background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.25); color:#fff;
+    padding:4px 10px; border-radius:999px; font-size:11.5px; font-weight:600; display:none; align-items:center; gap:4px;}
+  #moduleCrumb{display:inline-flex; align-items:center; gap:6px;}
+  #moduleCrumb button{background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.25); color:#fff;
+    padding:4px 10px; border-radius:999px; font-size:11.5px; font-weight:600;}
+  #moduleCrumb .sep{color:#8FA0C0;}
+  #moduleCrumb .now{color:#fff; font-weight:600; font-size:12px;}
+
+  .placeholder-block{text-align:center; padding:60px 24px; color:var(--ink-soft);}
+  .placeholder-block .icon{font-size:38px; margin-bottom:14px;}
+  .placeholder-block h2{font-size:16px; color:var(--navy); margin:0 0 8px;}
+  .placeholder-block p{font-size:13px; line-height:1.55; max-width:300px; margin:0 auto;}
+
+  #aq-loading{display:none; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:60px 24px; min-height:50vh;}
+  #aq-loading .icon{font-size:36px; margin-bottom:12px;}
+  #aq-loading h2{font-size:16px; color:var(--navy); margin:0 0 8px;}
+  #aq-loading p{font-size:13px; color:var(--ink-soft); line-height:1.5; max-width:300px; margin:0 0 12px;}
+  #aqLoadStep{font-size:11.5px; color:var(--ink-soft);}
+
 </style>
 </head>
 <body>
-
 <header class="top">
-  <p class="eyebrow">Painel de acompanhamento</p>
-  <h1>Acompanhamento Repasses — Acqua</h1>
-  <div class="crumb" id="crumb"></div>
+  <p class="eyebrow" id="hdrEyebrow">Central Financeira</p>
+  <h1 id="hdrTitle">SPL</h1>
+  <div class="crumb" id="crumb">
+    <button class="back-btn" id="backToHub">← Painel Geral</button>
+    <span id="moduleCrumb"></span>
+  </div>
   <div class="top-actions" id="topActions" style="display:none;">
     <span class="who" id="whoAmI"></span>
-    <button class="pill-btn" id="refreshBtn">↻ Atualizar</button>
+    <button class="pill-btn" id="refreshBtn" style="display:none;">↻ Atualizar</button>
     <button class="pill-btn" id="logoutBtn">Sair</button>
   </div>
 </header>
 
 <main>
-  <div class="view active" id="view-gate">
+  <div class="screen active" id="screen-gate">
     <div class="gate" id="gateContent"><div class="spinner"></div><h2>Carregando...</h2></div>
   </div>
-  <div class="view" id="view-panel"></div>
-  <div class="view" id="view-group"></div>
-  <div class="view" id="view-client"></div>
+
+  <div class="screen" id="screen-hub">
+    <h2 class="sec"><span class="bar"></span>Painel geral</h2>
+    <p class="hub-lede">Escolha uma área para ver os detalhes.</p>
+    <div class="hub-grid">
+      <button class="hub-card soon" data-screen="caixa">
+        <span class="badge-ic" style="background:var(--navy);">
+          <svg viewBox="0 0 24 24"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v6c0 1.66 3.58 3 8 3s8-1.34 8-3V6"/><path d="M4 12v6c0 1.66 3.58 3 8 3s8-1.34 8-3v-6"/></svg>
+        </span>
+        <span class="t">Posição de Caixa</span>
+        <span class="soon-chip">Em breve</span>
+      </button>
+      <button class="hub-card soon" data-screen="aportes">
+        <span class="badge-ic" style="background:var(--navy);">
+          <svg viewBox="0 0 24 24"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+        </span>
+        <span class="t">Aportes e Devoluções</span>
+        <span class="soon-chip">Em breve</span>
+      </button>
+      <button class="hub-card" data-screen="acqua">
+        <span class="badge-ic" style="background:var(--rust);">AQ</span>
+        <span class="t">Repasses Acqua</span>
+      </button>
+      <button class="hub-card" data-screen="associativos">
+        <span class="badge-ic" style="background:var(--green);">AS</span>
+        <span class="t">Repasses Associativos</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="screen" id="screen-caixa">
+    <div class="placeholder-block">
+      <div class="icon">🚧</div>
+      <h2>Posição de Caixa</h2>
+      <p>Essa área ainda está sendo desenhada. Assim que a fonte de dados for definida, o painel entra aqui.</p>
+    </div>
+  </div>
+
+  <div class="screen" id="screen-aportes">
+    <div class="placeholder-block">
+      <div class="icon">🚧</div>
+      <h2>Aportes e Devoluções</h2>
+      <p>Essa área ainda está sendo desenhada. Assim que a fonte de dados for definida, o painel entra aqui.</p>
+    </div>
+  </div>
+
+  <div class="screen" id="screen-acqua">
+    <div id="aq-loading"><div class="spinner"></div><h2>Carregando dados...</h2><p id="aqLoadStep">Conectando ao SharePoint...</p></div>
+    <div class="view active" id="aq-view-panel"></div>
+    <div class="view" id="aq-view-group"></div>
+    <div class="view" id="aq-view-client"></div>
+  </div>
+
+  <div class="screen" id="screen-associativos">
+    <div style="margin-bottom:10px;"><span class="pill" id="refDatePill" style="background:var(--paper); border-color:var(--line); color:var(--ink-soft);">—</span></div>
+    <section class="tabpanel active" id="fin-tab-resumo"></section>
+    <section class="tabpanel" id="fin-tab-evolucao"></section>
+    <section class="tabpanel" id="fin-tab-criticos"></section>
+    <section class="tabpanel" id="fin-tab-previsao"></section>
+  </div>
 </main>
+
+<nav class="tabbar" id="finTabbar" style="display:none;">
+  <button data-tab="resumo" class="active" aria-label="Resumo">
+    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+    Resumo
+  </button>
+  <button data-tab="evolucao" aria-label="Evolução">
+    <svg viewBox="0 0 24 24"><polyline points="3,17 9,10 13,14 21,5"/><polyline points="15,5 21,5 21,11"/></svg>
+    Evolução
+  </button>
+  <button data-tab="criticos" aria-label="Críticos">
+    <svg viewBox="0 0 24 24"><path d="M12 3 L22 20 L2 20 Z"/><line x1="12" y1="9" x2="12" y2="14"/><circle cx="12" cy="17" r="0.6" fill="currentColor" stroke="none"/></svg>
+    Críticos
+  </button>
+  <button data-tab="previsao" aria-label="Previsão">
+    <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg>
+    Previsão
+  </button>
+</nav>
+
+
+<script id="fin-report-data" type="application/json">{"onepage": {"Prisma": {"total_vendidos": {"qtde": 186, "valor": 63800392.0}, "registro": {"qtde": 47, "pct_qtde": "25%", "valor": 16246552.0, "pct_valor": "25,46%"}, "assinatura": {"qtde": 5, "pct_qtde": "3%", "valor": 1780878.0, "pct_valor": "2,79%"}, "analise": {"qtde": 9, "pct_qtde": "5%", "valor": 2961074.0, "pct_valor": "4,64%"}, "distrato": {"qtde": 7, "pct_qtde": "4%", "valor": 2267148.0, "pct_valor": "3,55%"}, "liberado": {"qtde": 67, "pct_qtde": "36%", "valor": 20982254.0, "pct_valor": "32,89%"}, "data_envio": "2026-07-27 20:23"}, "Botaniq Home": {"total_vendidos": {"qtde": 354, "valor": 108738568.0}, "registro": {"qtde": 22, "pct_qtde": "6%", "valor": 7373894.0, "pct_valor": "6,78%"}, "assinatura": {"qtde": 7, "pct_qtde": "2%", "valor": 2387853.0, "pct_valor": "2,20%"}, "analise": {"qtde": 16, "pct_qtde": "5%", "valor": 5074606.0, "pct_valor": "4,67%"}, "distrato": {"qtde": 0, "pct_qtde": "0%", "valor": 0.0, "pct_valor": "0,00%"}, "liberado": {"qtde": 281, "pct_qtde": "79%", "valor": 83731268.0, "pct_valor": "77,00%"}, "data_envio": "2026-07-24 19:39"}, "Essencial Home": {"total_vendidos": {"qtde": 38, "valor": 12887740.0}, "registro": {"qtde": 1, "pct_qtde": "3%", "valor": 344349.0, "pct_valor": "2,67%"}, "assinatura": {"qtde": 0, "pct_qtde": "0%", "valor": 0.0, "pct_valor": "0,00%"}, "analise": {"qtde": 0, "pct_qtde": "0%", "valor": 0.0, "pct_valor": "0,00%"}, "distrato": {"qtde": 0, "pct_qtde": "0%", "valor": 0.0, "pct_valor": "0,00%"}, "liberado": {"qtde": 21, "pct_qtde": "55%", "valor": 6825411.0, "pct_valor": "52,96%"}, "data_envio": "2026-07-27 20:22"}, "InLife": {"total_vendidos": {"qtde": 222, "valor": 64305713.0}, "registro": {"qtde": 1, "pct_qtde": "0%", "valor": 341569.0, "pct_valor": "0,53%"}, "assinatura": {"qtde": 0, "pct_qtde": "0%", "valor": 0.0, "pct_valor": "0,00%"}, "analise": {"qtde": 1, "pct_qtde": "0%", "valor": 196345.0, "pct_valor": "0,31%"}, "distrato": {"qtde": 2, "pct_qtde": "1%", "valor": 698480.0, "pct_valor": "0,00%"}, "liberado": {"qtde": 165, "pct_qtde": "74%", "valor": 44751048.0, "pct_valor": "69,59%"}, "data_envio": "2026-07-24 19:39"}, "Dálias": {"total_vendidos": {"qtde": 80, "valor": 28716125.0}, "registro": {"qtde": 0, "pct_qtde": "0%", "valor": 0.0, "pct_valor": "0,00%"}, "assinatura": {"qtde": 0, "pct_qtde": "0%", "valor": 0.0, "pct_valor": "0,00%"}, "analise": {"qtde": 0, "pct_qtde": "0%", "valor": 0.0, "pct_valor": "0,00%"}, "distrato": {"qtde": 0, "pct_qtde": "0%", "valor": 0.0, "pct_valor": "0,00%"}, "liberado": {"qtde": 25, "pct_qtde": "31%", "valor": 8190879.0, "pct_valor": "28,52%"}, "data_envio": "2026-07-24 19:39"}, "Vero": {"total_vendidos": {"qtde": 112, "valor": 29433899.0}, "registro": {"qtde": 6, "pct_qtde": "5%", "valor": 1452737.0, "pct_valor": "4,94%"}, "assinatura": {"qtde": 4, "pct_qtde": "4%", "valor": 1066640.0, "pct_valor": "3,62%"}, "analise": {"qtde": 5, "pct_qtde": "4%", "valor": 1231380.0, "pct_valor": "4,18%"}, "distrato": {"qtde": 1, "pct_qtde": "1%", "valor": 294990.0, "pct_valor": "1,00%"}, "liberado": {"qtde": 67, "pct_qtde": "60%", "valor": 16817950.0, "pct_valor": "57,14%"}, "data_envio": "2026-07-24 19:39"}, "Brisas": {"total_vendidos": {"qtde": 82, "valor": 22508869.0}, "registro": {"qtde": 3, "pct_qtde": "4%", "valor": 815200.0, "pct_valor": "3,62%"}, "assinatura": {"qtde": 1, "pct_qtde": "1%", "valor": 238544.0, "pct_valor": "1,06%"}, "analise": {"qtde": 0, "pct_qtde": "0%", "valor": 0.0, "pct_valor": "0,00%"}, "distrato": {"qtde": 1, "pct_qtde": "1%", "valor": 280000.0, "pct_valor": "1,24%"}, "liberado": {"qtde": 54, "pct_qtde": "66%", "valor": 13909125.0, "pct_valor": "61,79%"}, "data_envio": "2026-07-27 20:22"}}, "onepage_totais": {"vendidos": {"qtde": 1074, "valor": 330391306.0}, "registro": {"qtde": 80, "valor": 26574301.0}, "assinatura": {"qtde": 17, "valor": 5473915.0}, "analise": {"qtde": 31, "valor": 9463405.0}, "distrato": {"qtde": 11, "valor": 3540618.0}, "liberado": {"valor": 195207935.0}}, "evolucao_agg": [{"registro_qtde": 78, "registro_valor": 25388718.0, "assinatura_qtde": 30, "assinatura_valor": 9827564.0, "analise_qtde": 37, "analise_valor": 10962891.0, "liberado_qtde": 647, "distrato_qtde": 12, "label": "S-4"}, {"registro_qtde": 77, "registro_valor": 25201714.0, "assinatura_qtde": 27, "assinatura_valor": 8965746.0, "analise_qtde": 37, "analise_valor": 11156485.0, "liberado_qtde": 657, "distrato_qtde": 8, "label": "S-3"}, {"registro_qtde": 83, "registro_valor": 27012221.0, "assinatura_qtde": 17, "assinatura_valor": 5595129.0, "analise_qtde": 39, "analise_valor": 11575118.0, "liberado_qtde": 665, "distrato_qtde": 8, "label": "S-2"}, {"registro_qtde": 77, "registro_valor": 25397517.0, "assinatura_qtde": 13, "assinatura_valor": 4382033.0, "analise_qtde": 39, "analise_valor": 12032007.0, "liberado_qtde": 667, "distrato_qtde": 9, "label": "S-1"}, {"registro_qtde": 80, "registro_valor": 26574301.0, "assinatura_qtde": 17, "assinatura_valor": 5473915.0, "analise_qtde": 31, "analise_valor": 9463405.0, "liberado_qtde": 680, "distrato_qtde": 11, "label": "Atual"}], "evo_table": [{"emp": "Prisma", "cur_date": "2026-07-27 20:23", "old_date": "2026-06-29 10:00", "registro_cur": {"qtde": 47, "pct_qtde": "25%", "valor": 16246552.0, "pct_valor": "25,46%"}, "registro_old": {"qtde": 37, "pct_qtde": "21%", "valor": 12878421.0, "pct_valor": "20,69%"}, "assinatura_cur": {"qtde": 5, "pct_qtde": "3%", "valor": 1780878.0, "pct_valor": "2,79%"}, "assinatura_old": {"qtde": 11, "pct_qtde": "6%", "valor": 3794089.0, "pct_valor": "6,10%"}, "analise_cur": {"qtde": 9, "pct_qtde": "5%", "valor": 2961074.0, "pct_valor": "4,64%"}, "analise_old": {"qtde": 11, "pct_qtde": "6%", "valor": 3657053.0, "pct_valor": "5,88%"}, "liberado_cur": {"qtde": 67, "pct_qtde": "36%", "valor": 20982254.0, "pct_valor": "32,89%"}, "liberado_old": {"qtde": 65, "pct_qtde": "36%", "valor": 20241923.0, "pct_valor": "32,52%"}}, {"emp": "Botaniq Home", "cur_date": "2026-07-24 19:39", "old_date": "2026-06-26 08:36", "registro_cur": {"qtde": 22, "pct_qtde": "6%", "valor": 7373894.0, "pct_valor": "6,78%"}, "registro_old": {"qtde": 28, "pct_qtde": "8%", "valor": 8762037.0, "pct_valor": "8,24%"}, "assinatura_cur": {"qtde": 7, "pct_qtde": "2%", "valor": 2387853.0, "pct_valor": "2,20%"}, "assinatura_old": {"qtde": 12, "pct_qtde": "3%", "valor": 4137612.0, "pct_valor": "3,89%"}, "analise_cur": {"qtde": 16, "pct_qtde": "5%", "valor": 5074606.0, "pct_valor": "4,67%"}, "analise_old": {"qtde": 14, "pct_qtde": "4%", "valor": 4442913.0, "pct_valor": "4,18%"}, "liberado_cur": {"qtde": 281, "pct_qtde": "79%", "valor": 83731268.0, "pct_valor": "77,00%"}, "liberado_old": {"qtde": 265, "pct_qtde": "76%", "valor": 78818418.0, "pct_valor": "74,16%"}}, {"emp": "Essencial Home", "cur_date": "2026-07-27 20:22", "old_date": "2026-06-29 10:01", "registro_cur": {"qtde": 1, "pct_qtde": "3%", "valor": 344349.0, "pct_valor": "2,67%"}, "registro_old": {"qtde": 1, "pct_qtde": "3%", "valor": 448000.0, "pct_valor": "3,60%"}, "assinatura_cur": {"qtde": 0, "pct_qtde": "0%", "valor": 0.0, "pct_valor": "0,00%"}, "assinatura_old": {"qtde": 1, "pct_qtde": "3%", "valor": 344550.0, "pct_valor": "2,77%"}, "analise_cur": {"qtde": 0, "pct_qtde": "0%", "valor": 0.0, "pct_valor": "0,00%"}, "analise_old": {"qtde": 0, "pct_qtde": "0%", "valor": 0.0, "pct_valor": "0,00%"}, "liberado_cur": {"qtde": 21, "pct_qtde": "55%", "valor": 6825411.0, "pct_valor": "52,96%"}, "liberado_old": {"qtde": 20, "pct_qtde": "53%", "valor": 6377411.0, "pct_valor": "51,27%"}}, {"emp": "InLife", "cur_date": "2026-07-24 19:39", "old_date": "2026-06-26 08:37", "registro_cur": {"qtde": 1, "pct_qtde": "0%", "valor": 341569.0, "pct_valor": "0,53%"}, "registro_old": {"qtde": 2, "pct_qtde": "1%", "valor": 708309.0, "pct_valor": "1,11%"}, "assinatura_cur": {"qtde": 0, "pct_qtde": "0%", "valor": 0.0, "pct_valor": "0,00%"}, "assinatura_old": {"qtde": 0, "pct_qtde": "0%", "valor": 0.0, "pct_valor": "0,00%"}, "analise_cur": {"qtde": 1, "pct_qtde": "0%", "valor": 196345.0, "pct_valor": "0,31%"}, "analise_old": {"qtde": 3, "pct_qtde": "1%", "valor": 611785.0, "pct_valor": "0,95%"}, "liberado_cur": {"qtde": 165, "pct_qtde": "74%", "valor": 44751048.0, "pct_valor": "69,59%"}, "liberado_old": {"qtde": 164, "pct_qtde": "74%", "valor": 44479971.0, "pct_valor": "69,41%"}}, {"emp": "Dálias", "cur_date": "2026-07-24 19:39", "old_date": "2026-06-26 08:37", "registro_cur": {"qtde": 0, "pct_qtde": "0%", "valor": 0.0, "pct_valor": "0,00%"}, "registro_old": {"qtde": 2, "pct_qtde": "3%", "valor": 568807.0, "pct_valor": "1,92%"}, "assinatura_cur": {"qtde": 0, "pct_qtde": "0%", "valor": 0.0, "pct_valor": "0,00%"}, "assinatura_old": {"qtde": 0, "pct_qtde": "0%", "valor": 0.0, "pct_valor": "0,00%"}, "analise_cur": {"qtde": 0, "pct_qtde": "0%", "valor": 0.0, "pct_valor": "0,00%"}, "analise_old": {"qtde": 0, "pct_qtde": "0%", "valor": 0.0, "pct_valor": "0,00%"}, "liberado_cur": {"qtde": 25, "pct_qtde": "31%", "valor": 8190879.0, "pct_valor": "28,52%"}, "liberado_old": {"qtde": 24, "pct_qtde": "30%", "valor": 8048890.0, "pct_valor": "27,18%"}}, {"emp": "Vero", "cur_date": "2026-07-24 19:39", "old_date": "2026-06-26 08:36", "registro_cur": {"qtde": 6, "pct_qtde": "5%", "valor": 1452737.0, "pct_valor": "4,94%"}, "registro_old": {"qtde": 7, "pct_qtde": "6%", "valor": 1726683.0, "pct_valor": "5,87%"}, "assinatura_cur": {"qtde": 4, "pct_qtde": "4%", "valor": 1066640.0, "pct_valor": "3,62%"}, "assinatura_old": {"qtde": 4, "pct_qtde": "4%", "valor": 991313.0, "pct_valor": "3,37%"}, "analise_cur": {"qtde": 5, "pct_qtde": "4%", "valor": 1231380.0, "pct_valor": "4,18%"}, "analise_old": {"qtde": 8, "pct_qtde": "7%", "valor": 1995940.0, "pct_valor": "6,78%"}, "liberado_cur": {"qtde": 67, "pct_qtde": "60%", "valor": 16817950.0, "pct_valor": "57,14%"}, "liberado_old": {"qtde": 57, "pct_qtde": "51%", "valor": 14276772.0, "pct_valor": "48,53%"}}, {"emp": "Brisas", "cur_date": "2026-07-27 20:22", "old_date": "2026-06-29 10:01", "registro_cur": {"qtde": 3, "pct_qtde": "4%", "valor": 815200.0, "pct_valor": "3,62%"}, "registro_old": {"qtde": 1, "pct_qtde": "1%", "valor": 296461.0, "pct_valor": "1,35%"}, "assinatura_cur": {"qtde": 1, "pct_qtde": "1%", "valor": 238544.0, "pct_valor": "1,06%"}, "assinatura_old": {"qtde": 2, "pct_qtde": "3%", "valor": 560000.0, "pct_valor": "2,56%"}, "analise_cur": {"qtde": 0, "pct_qtde": "0%", "valor": 0.0, "pct_valor": "0,00%"}, "analise_old": {"qtde": 1, "pct_qtde": "1%", "valor": 255200.0, "pct_valor": "1,16%"}, "liberado_cur": {"qtde": 54, "pct_qtde": "66%", "valor": 13909125.0, "pct_valor": "61,79%"}, "liberado_old": {"qtde": 52, "pct_qtde": "65%", "valor": 13378264.0, "pct_valor": "61,04%"}}], "recorrentes": [{"emp": "Botaniq Home", "cliente": "Sabrina Mascarelli Ferreira", "ocorrencias": 5, "dias": 115, "situacao": "Cliente sem aprovação / pendência documental", "sintese": "(Aprovada - Em exceção – Restrição e Documentos); Tinha previsão de repasse para 07/26, após a baixa das dívidas da cliente"}, {"emp": "Vero", "cliente": "Severiano Wesley Matos de Brito", "ocorrencias": 4, "dias": 57, "situacao": "Em notificação distrato", "sintese": "Cliente foi internalizado pois outro CCA alterou a sua renda, e não possui mais autorizas"}, {"emp": "Vero", "cliente": "Valdinei Sebastião Marques", "ocorrencias": 4, "dias": 53, "situacao": "Cliente sem aprovação", "sintese": "Status Aprovada - Em exceção - pendente documentos comercial"}, {"emp": "Vero", "cliente": "Robson Nascimento da Silva", "ocorrencias": 4, "dias": 33, "situacao": "Conformidade prevista até 29/07/2026", "sintese": "Em conferencia da documentação o CCA notou que falta os extratos de FGTS dos clientes, pois agora a caixa está exigindo, solicitamos a..."}, {"emp": "Prisma", "cliente": "Evelin Fogaça", "ocorrencias": 4, "dias": null, "situacao": "", "sintese": "(não presente na leitura mais recente)"}, {"emp": "Prisma", "cliente": "Lucas Walker", "ocorrencias": 4, "dias": null, "situacao": "", "sintese": "(não presente na leitura mais recente)"}, {"emp": "Prisma", "cliente": "Matheus Ariel", "ocorrencias": 4, "dias": null, "situacao": "", "sintese": "(não presente na leitura mais recente)"}, {"emp": "Prisma", "cliente": "Hugo D Leon", "ocorrencias": 4, "dias": null, "situacao": "", "sintese": "(não presente na leitura mais recente)"}, {"emp": "Prisma", "cliente": "Manuelly Dovigi", "ocorrencias": 4, "dias": null, "situacao": "", "sintese": "(não presente na leitura mais recente)"}, {"emp": "Botaniq Home", "cliente": "Sergio Alexandre", "ocorrencias": 4, "dias": null, "situacao": "", "sintese": "(não presente na leitura mais recente)"}, {"emp": "Botaniq Home", "cliente": "Alex Sandro", "ocorrencias": 4, "dias": null, "situacao": "", "sintese": "(não presente na leitura mais recente)"}, {"emp": "Botaniq Home", "cliente": "Wagner Luiz Ceará Souza", "ocorrencias": 4, "dias": null, "situacao": "", "sintese": "(não presente na leitura mais recente)"}, {"emp": "Botaniq Home", "cliente": "Moab de Souza", "ocorrencias": 4, "dias": null, "situacao": "", "sintese": "(não presente na leitura mais recente)"}, {"emp": "Botaniq Home", "cliente": "João Vitor Oliveira", "ocorrencias": 4, "dias": null, "situacao": "", "sintese": "(não presente na leitura mais recente)"}, {"emp": "Botaniq Home", "cliente": "Giancarlo Falabella", "ocorrencias": 4, "dias": null, "situacao": "", "sintese": "(não presente na leitura mais recente)"}, {"emp": "Botaniq Home", "cliente": "Jeferson Falcao", "ocorrencias": 4, "dias": null, "situacao": "", "sintese": "(não presente na leitura mais recente)"}, {"emp": "Botaniq Home", "cliente": "Fatima Miranda", "ocorrencias": 4, "dias": null, "situacao": "", "sintese": "(não presente na leitura mais recente)"}, {"emp": "Botaniq Home", "cliente": "Sabrina da Silva", "ocorrencias": 4, "dias": null, "situacao": "", "sintese": "(não presente na leitura mais recente)"}, {"emp": "Botaniq Home", "cliente": "Edileide Cassia", "ocorrencias": 4, "dias": null, "situacao": "", "sintese": "(não presente na leitura mais recente)"}, {"emp": "Botaniq Home", "cliente": "Marcio Roberto", "ocorrencias": 4, "dias": null, "situacao": "", "sintese": "(não presente na leitura mais recente)"}, {"emp": "InLife", "cliente": "Emerson Sidney", "ocorrencias": 4, "dias": null, "situacao": "", "sintese": "(não presente na leitura mais recente)"}, {"emp": "Vero", "cliente": "Daniel Guilherme", "ocorrencias": 4, "dias": null, "situacao": "", "sintese": "(não presente na leitura mais recente)"}, {"emp": "Prisma", "cliente": "Victor Felipe", "ocorrencias": 3, "dias": null, "situacao": "", "sintese": "(não presente na leitura mais recente)"}, {"emp": "Prisma", "cliente": "Leandro Alves", "ocorrencias": 3, "dias": null, "situacao": "", "sintese": "(não presente na leitura mais recente)"}, {"emp": "Prisma", "cliente": "Maisa Cristiane", "ocorrencias": 3, "dias": null, "situacao": "", "sintese": "(não presente na leitura mais recente)"}, {"emp": "Botaniq Home", "cliente": "Winston Fernando", "ocorrencias": 3, "dias": null, "situacao": "", "sintese": "(não presente na leitura mais recente)"}, {"emp": "Botaniq Home", "cliente": "Guilherme Henrique", "ocorrencias": 3, "dias": null, "situacao": "", "sintese": "(não presente na leitura mais recente)"}, {"emp": "Botaniq Home", "cliente": "Raphael de Sena", "ocorrencias": 3, "dias": null, "situacao": "", "sintese": "(não presente na leitura mais recente)"}, {"emp": "InLife", "cliente": "Francisca Geruza", "ocorrencias": 3, "dias": null, "situacao": "", "sintese": "(não presente na leitura mais recente)"}, {"emp": "InLife", "cliente": "Irapuam Garcia", "ocorrencias": 3, "dias": null, "situacao": "", "sintese": "(não presente na leitura mais recente)"}, {"emp": "Vero", "cliente": "LUZINETE DOS SANTOS FIGUEIREDO", "ocorrencias": 3, "dias": null, "situacao": "", "sintese": "(não presente na leitura mais recente)"}, {"emp": "Vero", "cliente": "Ariany Aparecida Pedron", "ocorrencias": 3, "dias": null, "situacao": "", "sintese": "(não presente na leitura mais recente)"}], "top_parados_analise": [{"emp": "Botaniq Home", "cliente": "Jeferson Falcao Rodrigues", "unidade": "", "etapa": "Financiamento Análise", "dias": 479, "obs": "(Aprovada - Em exceção - IR Futuro) O cliente, que é corretor da SPL, informou em 14/05 que realizará a cessão de direitos para sua filha. Na mesma data, foi solicitada a documentação necessária para dar andamento ao processo, porém até o momento ela não foi recebida.Diante da ausência de regularização, o cliente foi notificado em 21/05, com prazo para resolução até 05/06.Em contato realizado em 01/06, o cliente informou que recebeu autorização do Arthur para um prazo adicional de 60 dias até 01/08 para efetivar a cessão para a filha.", "valor": 0}, {"emp": "Botaniq Home", "cliente": "MOAB DE SOUZA MELO NETO", "unidade": "", "etapa": "Financiamento Análise", "dias": 131, "obs": "A venda Aprovada em Exceção – Restrição Financeira.Restrições ainda permanece, e cliente não retorna aos atendimentos. Foi notificado em 02/07, com prazo até 17/07. Venda encaminhada para cancelamento em 24/07/2026.", "valor": 0}, {"emp": "Botaniq Home", "cliente": "ALEX SANDRO MOURA SILVA", "unidade": "", "etapa": "Financiamento Análise", "dias": 130, "obs": "(Aprovada – Em Exceção – IR Futuro) Processo tinha previsão de retorno da conformidade até 22/07, porém ficou inconforme devido a cliente possuir imóvel em local impeditivo e comercial. A contestação foi enviada para a CEF em 22/07. Novo prazo de conformidade até 29/07;O cliente foi notificado em 02/07, e tinha prazo para regularização até 17/07. Devido a inconformidade, vamos aguardar. Se não for resolvido, venda será encaminhada para o cancelamento.", "valor": 0}, {"emp": "Botaniq Home", "cliente": "JOAO PEDRO SANTOS VIDIRI", "unidade": "", "etapa": "Financiamento Análise", "dias": 130, "obs": "Venda Aprovada - Em exceção – Restrição. Cliente reanalisado em 14/07, porém condicionou bastante no valor acima de 100 mil, cliente informou que vai solicitar o distrato, porém não formalizou. Notificado em 08/07 prazo até 23/07. O cliente enviou renda adicional para nova avaliação. Solicitamos ao CCA agilidade e prazo para resolver até 27/07, senão será encaminhado para cancelamento.", "valor": 0}, {"emp": "Botaniq Home", "cliente": "Sabrina Mascarelli Ferreira", "unidade": "", "etapa": "Financiamento Análise", "dias": 115, "obs": "(Aprovada - Em exceção – Restrição e Documentos); Tinha previsão de repasse para 07/26, após a baixa das dívidas da cliente. Além disso, está pendente envio de matrícula averbada do apartamento, previsto para 06/08. Foi notificada em 02/07, com vencimento até 17/07. Se a cliente não enviar a matrícula conforme previsto, no prazo, a venda será encaminhada para cancelamento.", "valor": 0}, {"emp": "Botaniq Home", "cliente": "EDILEIDE DE CASSIA ALVES", "unidade": "", "etapa": "Financiamento Análise", "dias": 96, "obs": "Venda Aprovada em Exceção – Restrição Financeira. Em 28/05, a cliente passou por reavaliação e obteve aprovação condicionada. Contudo, foi identificada uma diferença de R$ 65.639,26, que precisa ser negociada.Atualmente, o fluxo de pagamento da cliente encontra-se elevado, com comprometimento de 35% em pró-soluto. Em contato recente, a cliente informou que não possui recursos para realizar o pagamento da diferença e manifestou intenção de solicitar o distrato. Conversei em 06/07 com a corretora Denise que enviou um fluxo, mas o saldo ainda ultrapassa 35% além disso cliente está inadimplente com as parcelas. Será notificada em 24/07/2026.", "valor": 0}, {"emp": "Prisma", "cliente": "MANUELLY DOVIGI", "unidade": "", "etapa": "Financiamento Análise", "dias": 83, "obs": "Cliente perdeu avaliação e será internalizada porque declarou cota de consórcio imobiliário no IR e a CEF deu negativa por ser impeditivo para seguir via CCA. Solicitei internalização até 28/07, devido ao prazo da cliente", "valor": 0}, {"emp": "Prisma", "cliente": "EVELIN FOGAÇA PINHEIRO", "unidade": "", "etapa": "Financiamento Análise", "dias": 79, "obs": "Aprovada - Em exceção - pendente documentos comercial. Para rodar análise, CCA solicitou a cliente para apresentar extrato do FGTS com o depósito do mês de JUNHO e transferência das empresas assinada via gov.br pelo responsável do RH da empresa - Ainda, a proponente Mayara deve apresentar extrato do FGTS com o depósito do mês de Junho, pois foi contratada recente e o contracheque do mês de Maio está incompleta a renda. Previsão de recebimento de documentação até 05/08", "valor": 0}, {"emp": "Botaniq Home", "cliente": "MARCIO ROBERTO MOREIRA JUNIOR", "unidade": "", "etapa": "Financiamento Análise", "dias": 75, "obs": "(Aprovada - Em exceção) Repasse futuro clientes possui comprometimento de renda. Previsão para repasse até 31/07.", "valor": 0}, {"emp": "Botaniq Home", "cliente": "JOÃO VITOR OLIVEIRA BISPO FELIX", "unidade": "", "etapa": "Financiamento Análise", "dias": 59, "obs": "Cliente foi reavaliado, mas não foi aprovado, ainda possui Bacen vamos entra em contato com o cliente até 28/07 para entender com ele como ele pretenderá seguir mediante o retorno da análise.", "valor": 0}, {"emp": "Vero", "cliente": "Severiano Wesley Matos de Brito", "unidade": "", "etapa": "Financiamento Análise", "dias": 57, "obs": "Cliente foi internalizado pois outro CCA alterou a sua renda, e não possui mais autorizas. A agência informou que não é possível dar continuidade ao processo neste momento, pois já foi concedida a terceira autorização interna. Dessa forma, o processo somente poderá seguir após o vencimento da avaliação do cliente, previsto para 12/11/2026. Cliente será notificado em 27/07/2026.", "valor": 0}, {"emp": "Vero", "cliente": "Valdinei Sebastião Marques", "unidade": "", "etapa": "Financiamento Análise", "dias": 53, "obs": "Status Aprovada - Em exceção - pendente documentos comercial. Cliente condicionado e não possui mais autorizas, precisa aguardar a avaliação vencer em 27/09/2026 para nova análise. Como ultrapassará o prazo contratual, vamos verificar com Naiane até 27/07 se vamos aguardar.", "valor": 0}, {"emp": "Botaniq Home", "cliente": "SABRINA DA SILVA GOMES", "unidade": "", "etapa": "Financiamento Análise", "dias": 40, "obs": "(Aprovada - Em exceção – Restrição e Documentos) Repasse estava previsto para 07/26, porém após a baixa das dívidas foi identificado pela conformidade a necessidade de envio de averbação da matrícula do apartamento que estava me nome da cliente. Prazo para resolver até 06/08. Foi notificada em 02/07 com vencimento até 17/07, porém vamos aguardar prazo em exceção. Se não for resolvido, venda irá para cancelamento", "valor": 0}, {"emp": "Botaniq Home", "cliente": "SERGIO ALEXANDRE DE JESUS", "unidade": "", "etapa": "Financiamento Análise", "dias": 40, "obs": "Venda Aprovada – Em Exceção (Restrições e Documentação). Além de apontamentos de restrição de crédito, dívidas quitadas com prejuízo no SCR, o Sergio possui Conres desde 2001 e não houve baixa.A renda dele é insuficiente, para considerar a renda da esposa, foi necessário que emitissem IR, porém emitiram fora do prazo normativo da CEF, e por isso a renda dela não poderá ser utilizada formalmente. Em 23/07, CCA enviou pedido via e-mail para a CEF solicitando ajuda na baixa do Conres. Após a baixa, vamos tentar reavaliar usando a renda informal, o que pode gerar mais de 100mil de diferença a ser negociada com o cliente. Estamos acompanhando de perto com auxílio da Luissima do CCA, agência e Luniere. Previsão para baixa do Conres até 31/07 e nova avaliação após 05/08/2026.", "valor": 0}, {"emp": "Botaniq Home", "cliente": "GIANCARLO FALABELLA RON", "unidade": "", "etapa": "Financiamento Análise", "dias": 40, "obs": "Venda Aprovada - Em exceção - pendente documentos comercial. Cliente para repasse futuro - aprovado 10% a menos que a simulação (Autorizado por Luniere) - Cliente possui comprometimento de renda alto que está reduzindo, previsão de repasse em 60 dias. Dia 19/08/2026.", "valor": 0}], "top_parados_assinatura": [{"emp": "Prisma", "cliente": "MARCI TEREZINHA ARENHARDT CORREIA", "unidade": "BL02-0906", "etapa": "Financiamento Assinatura", "dias": 180, "obs": "Cliente notificada e prazo já ultrapassado, como a nova restrição entrou assim que a cliente ficou conforme, vamos conseguir o prazo de baixa de restrição para avaliar se vamos aguardar ou enviar a venda para cancelamento. Solicitei informação ao CCA em 27/07 e vamos entrar em contato com a cliente até 28/07/2026.", "valor": 384490.0}, {"emp": "Prisma", "cliente": "PEDRO RICARDO DA SILVA", "unidade": "BL01-1206", "etapa": "Financiamento Assinatura", "dias": 171, "obs": "Minuta foi emitida em 24/07, porém com valor de financiamento que excede o prosoluto total do cliente, solicitamos ajuste. Previsão de recebimento em 27/07/2026.", "valor": 391126.0}, {"emp": "InLife", "cliente": "ISABELLE CRISTINA BELLAN", "unidade": "BLB-093", "etapa": "Financiamento Assinatura", "dias": 154, "obs": "Precisão de liberação 24/07", "valor": 366740.0}, {"emp": "Prisma", "cliente": "WEBERSON BARBOSA CONEJO", "unidade": "BL03-0605", "etapa": "Financiamento Assinatura", "dias": 74, "obs": "Entrevista realizada em 25/06. Cliente informou que, no momento, não possui o valor da taxa para pagamento à vista e em conversa no dia07/07 cliente prevê conseguir o recurso até 31/07. O cliente foi orientado sobre o prazo contratual e sobre a possibilidade de notificação.", "valor": 338720.0}, {"emp": "Vero", "cliente": "PAULO FELIPE CARVALHO GOMES", "unidade": "BLB-105", "etapa": "Financiamento Assinatura", "dias": 63, "obs": "Tem ação judicial com a Caixa, gerente informou que o cliente precisa retirar a ação para liberar a minuta. Corretor está fazendo o contato com cliente previsão de retorno até 27/07.", "valor": 287100.0}, {"emp": "Prisma", "cliente": "LEANDRO ALVES FREITAS", "unidade": "BL01-0806", "etapa": "Financiamento Assinatura", "dias": 41, "obs": "Minuta recebida no final de 24/07, pós expedientes, será conferida e liberada para assinatura hoje, 27/07/2026.", "valor": 318993.0}, {"emp": "Botaniq Home", "cliente": "Wagner Luiz Ceará Souza", "unidade": "CASA-397", "etapa": "Financiamento Assinatura", "dias": 41, "obs": "Entrevista agendada para 28/07 as 14:30h.", "valor": 320000.0}, {"emp": "Vero", "cliente": "DANIEL GUILHERME SCHENOOR FILHO", "unidade": "BLB-021", "etapa": "Financiamento Assinatura", "dias": 41, "obs": "Minuta ok aditivo enviado, aguardando assinatura do cliente", "valor": 259078.0}, {"emp": "Prisma", "cliente": "MAISA CRISTIANE CEZAR HARMEL", "unidade": "BL02-0704", "etapa": "Financiamento Assinatura", "dias": 39, "obs": "Entrevista realizada em 15/07, mas cliente não possui o valor da taxa a vista, reagendou para dia 03/08. Estamos verificando se a cliente consegue adiantar.", "valor": 347548.0}, {"emp": "Vero", "cliente": "LUZINETE DOS SANTOS FIGUEIREDO", "unidade": "BLA-075", "etapa": "Financiamento Assinatura", "dias": 39, "obs": "Minuta ok aditivo enviado, aguardando assinatura do cliente", "valor": 270301.0}, {"emp": "Vero", "cliente": "Ariany Aparecida Pedron", "unidade": "BLB-011", "etapa": "Financiamento Assinatura", "dias": 39, "obs": "cliente ficou conforme dia 21/07, aguardando a baixa da restrição para fazer o agendamento de entrevista", "valor": 250160.0}, {"emp": "Botaniq Home", "cliente": "Guilherme Henrique Santos Teixeira", "unidade": "CASA-301", "etapa": "Financiamento Assinatura", "dias": 31, "obs": "Minuta conferida e liberada para assinatura, previsão de recebimento em 24/07/2026. Cobramos agilidade ao CCA nesta data.", "valor": 322353.0}, {"emp": "Botaniq Home", "cliente": "Winston Fernando De Lima Gonçalves", "unidade": "CASA-368", "etapa": "Financiamento Assinatura", "dias": 27, "obs": "Cliente ficou conforme dia 22/07 já solicitamos ao CCA a emissa da minuta.", "valor": 361387.0}, {"emp": "Brisas", "cliente": "PEDRO HENRIQUE PEREIRA LANÇONI", "unidade": "BLA-041", "etapa": "Financiamento Assinatura", "dias": 18, "obs": "Minuta liberada para assinatura", "valor": 238544.0}, {"emp": "Botaniq Home", "cliente": "KIVIA AMADEI GONCALVES", "unidade": "CASA-238", "etapa": "Financiamento Assinatura", "dias": 16, "obs": "Cliente compareceu na entrevista, porém não houve finalização. CCA agendou reunião com a cliente para entender as dúvidas. Vamos ter retorno até 27/07, quando também entraremos em contato com a cliente, com apoio do corretor para entender o porquê não deu seguimento na entrevista.", "valor": 331760.0}], "falhas_operacionais": [{"emp": "Botaniq Home", "cliente": "SABRINA DA SILVA GOMES", "unidade": "", "etapa": "Financiamento Análise", "prazo_prometido": "17/07/2026", "dias_parado": 40, "obs": "(Aprovada - Em exceção – Restrição e Documentos) Repasse estava previsto para 07/26, porém após a baixa das dívidas foi identificado pela conformidade a necessidade de envio de averbação da matrícula do apartamento que estava me nome da cliente. Prazo para resolver até 06/08. Foi notificada em 02/07 com vencimento até 17/07, porém vamos aguardar prazo em exceção. Se não for resolvido, venda irá para cancelamento"}, {"emp": "Botaniq Home", "cliente": "MOAB DE SOUZA MELO NETO", "unidade": "", "etapa": "Financiamento Análise", "prazo_prometido": "17/07/2026", "dias_parado": 131, "obs": "A venda Aprovada em Exceção – Restrição Financeira.Restrições ainda permanece, e cliente não retorna aos atendimentos. Foi notificado em 02/07, com prazo até 17/07. Venda encaminhada para cancelamento em 24/07/2026."}, {"emp": "Botaniq Home", "cliente": "ALEX SANDRO MOURA SILVA", "unidade": "", "etapa": "Financiamento Análise", "prazo_prometido": "17/07/2026", "dias_parado": 130, "obs": "(Aprovada – Em Exceção – IR Futuro) Processo tinha previsão de retorno da conformidade até 22/07, porém ficou inconforme devido a cliente possuir imóvel em local impeditivo e comercial. A contestação foi enviada para a CEF em 22/07. Novo prazo de conformidade até 29/07;O cliente foi notificado em 02/07, e tinha prazo para regularização até 17/07. Devido a inconformidade, vamos aguardar. Se não for resolvido, venda será encaminhada para o cancelamento."}, {"emp": "Botaniq Home", "cliente": "Sabrina Mascarelli Ferreira", "unidade": "", "etapa": "Financiamento Análise", "prazo_prometido": "17/07/2026", "dias_parado": 115, "obs": "(Aprovada - Em exceção – Restrição e Documentos); Tinha previsão de repasse para 07/26, após a baixa das dívidas da cliente. Além disso, está pendente envio de matrícula averbada do apartamento, previsto para 06/08. Foi notificada em 02/07, com vencimento até 17/07. Se a cliente não enviar a matrícula conforme previsto, no prazo, a venda será encaminhada para cancelamento."}], "vence_hoje": [], "pivot_semanas": ["19/07/2026", "26/07/2026", "02/08/2026", "09/08/2026", "16/08/2026", "23/08/2026", "30/08/2026", "31/08/2026", "06/09/2026", "13/09/2026"], "pivot": {"Prisma": {"26/07/2026": 0.0, "02/08/2026": 2027242.57, "09/08/2026": 711513.26, "16/08/2026": 2807596.87, "23/08/2026": 973858.54, "30/08/2026": 6448278.75, "06/09/2026": 1067590.5, "13/09/2026": 2210471.33}, "Botaniq Home": {"19/07/2026": 0.0, "26/07/2026": 640000.0, "02/08/2026": 1002342.35, "09/08/2026": 2001482.5, "16/08/2026": 673529.06, "23/08/2026": 1372071.04, "30/08/2026": 1684469.26}, "Essencial Home": {"23/08/2026": 344349.25, "31/08/2026": 0.0}, "InLife": {"19/07/2026": 341569.14}, "Dálias": {}, "Vero": {"26/07/2026": 242960.0, "02/08/2026": 223137.17, "09/08/2026": 242594.44, "16/08/2026": 238481.01, "30/08/2026": 505563.9}, "Brisas": {"16/08/2026": 535200.0}}, "pivot_totals": {"19/07/2026": 341569.14, "26/07/2026": 882960.0, "02/08/2026": 3252722.09, "09/08/2026": 2955590.2, "16/08/2026": 4254806.94, "23/08/2026": 2690278.83, "30/08/2026": 8638311.91, "31/08/2026": 0.0, "06/09/2026": 1067590.5, "13/09/2026": 2210471.33}, "EMPS": ["Prisma", "Botaniq Home", "Essencial Home", "InLife", "Dálias", "Vero", "Brisas"], "periodo_ref": {"min": "2026-07-24", "max": "2026-07-27"}}</script>
 
 <script>
 // =========================================================
-// CONFIG
+// SHARED CONFIG
 // =========================================================
 const MSAL_CONFIG = {
   auth: {
@@ -176,6 +349,159 @@ const MSAL_CONFIG = {
   cache: { cacheLocation: "sessionStorage", storeAuthStateInCookie: false },
 };
 const GRAPH_SCOPES = ["Files.Read", "Sites.Read.All"];
+
+let msalInstance, account = null;
+
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function gateHtml({icon, title, body, extra=''}){
+  return `<div class="icon">${icon}</div><h2>${title}</h2><p>${body}</p>${extra}`;
+}
+function setGate(html){ document.getElementById('gateContent').innerHTML = html; }
+
+// =========================================================
+// AUTH
+// =========================================================
+async function initAuth(){
+  if (typeof msal === 'undefined'){
+    setGate(gateHtml({
+      icon:'⚠️',
+      title:'Biblioteca de login não carregou',
+      body:'O arquivo msal-browser.min.js não foi encontrado. Confirma se ele foi enviado pro GitHub junto com o index.html, na mesma pasta.',
+    }));
+    return;
+  }
+  try{
+    msalInstance = new msal.PublicClientApplication(MSAL_CONFIG);
+    await msalInstance.initialize();
+
+    const resp = await msalInstance.handleRedirectPromise();
+    if (resp && resp.account) account = resp.account;
+
+    const accounts = msalInstance.getAllAccounts();
+    if (!account && accounts.length > 0) account = accounts[0];
+
+    if (account){
+      msalInstance.setActiveAccount(account);
+      onLoggedIn();
+    } else {
+      showLoginScreen();
+    }
+  } catch(e){
+    showAuthError(e);
+  }
+}
+
+function onLoggedIn(){
+  document.getElementById('topActions').style.display = 'flex';
+  document.getElementById('whoAmI').textContent = account.username || '';
+  showScreen('hub');
+}
+
+function showLoginScreen(){
+  setGate(gateHtml({
+    icon:'🔐',
+    title:'Entrar com sua conta Microsoft',
+    body:'O painel busca os dados direto das planilhas da SPL, com a sua permissão de acesso. Você usa seu login normal da SPL.',
+    extra:`<button class="ms-btn" id="loginBtn">
+      <svg class="ms-logo" viewBox="0 0 21 21"><rect x="1" y="1" width="9" height="9" fill="#f25022"/><rect x="11" y="1" width="9" height="9" fill="#7fba00"/><rect x="1" y="11" width="9" height="9" fill="#00a4ef"/><rect x="11" y="11" width="9" height="9" fill="#ffb900"/></svg>
+      Entrar com Microsoft
+    </button>`
+  }));
+  document.getElementById('loginBtn').addEventListener('click', doLogin);
+}
+
+async function doLogin(){
+  try{
+    setGate(gateHtml({icon:'⏳', title:'Abrindo login...', body:'Uma janela da Microsoft deve abrir.'}));
+    const resp = await msalInstance.loginPopup({ scopes: GRAPH_SCOPES });
+    account = resp.account;
+    msalInstance.setActiveAccount(account);
+    onLoggedIn();
+  } catch(e){
+    showAuthError(e);
+  }
+}
+
+async function getToken(){
+  const req = { scopes: GRAPH_SCOPES, account };
+  try{
+    const res = await msalInstance.acquireTokenSilent(req);
+    return res.accessToken;
+  } catch(e){
+    const res = await msalInstance.acquireTokenPopup(req);
+    return res.accessToken;
+  }
+}
+window.SharedAuth = { getToken };
+
+function showAuthError(e){
+  setGate(gateHtml({
+    icon:'⚠️',
+    title:'Não consegui entrar',
+    body:'Aconteceu um erro durante o login. Detalhe técnico abaixo — me manda print se for pedir ajuda.',
+    extra:`<div class="err-box">${esc(e && e.message ? e.message : String(e))}</div>
+      <button class="retry-btn" id="retryLoginBtn">Tentar de novo</button>`
+  }));
+  const btn = document.getElementById('retryLoginBtn');
+  if (btn) btn.addEventListener('click', showLoginScreen);
+}
+
+document.getElementById('logoutBtn').addEventListener('click', ()=>{
+  msalInstance.logoutPopup().catch(()=>{});
+});
+document.getElementById('refreshBtn').addEventListener('click', ()=>{
+  if (window.AcquaModule) window.AcquaModule.reload();
+});
+
+// =========================================================
+// HUB NAVIGATION
+// =========================================================
+const HEADER_CFG = {
+  hub:          { eyebrow:'Central Financeira', title:'SPL', back:false },
+  caixa:        { eyebrow:'Em breve', title:'Posição de Caixa', back:true },
+  aportes:      { eyebrow:'Em breve', title:'Aportes e Devoluções', back:true },
+  acqua:        { eyebrow:'Repasses', title:'Acqua', back:true },
+  associativos: { eyebrow:'Repasses', title:'Empreendimentos Associativos', back:true },
+};
+
+function updateHeader(name){
+  const cfg = HEADER_CFG[name];
+  if (!cfg) return;
+  document.getElementById('hdrEyebrow').textContent = cfg.eyebrow;
+  document.getElementById('hdrTitle').textContent = cfg.title;
+  document.getElementById('backToHub').style.display = cfg.back ? 'inline-flex' : 'none';
+  document.getElementById('moduleCrumb').innerHTML = '';
+  document.getElementById('refreshBtn').style.display = (name === 'acqua') ? 'inline-flex' : 'none';
+}
+
+function showScreen(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  const el = document.getElementById('screen-'+name);
+  if (el) el.classList.add('active');
+  document.getElementById('finTabbar').style.display = (name === 'associativos') ? 'flex' : 'none';
+  updateHeader(name);
+  window.scrollTo({top:0, behavior:'instant'});
+
+  if (name === 'acqua' && window.AcquaModule) window.AcquaModule.enter();
+  if (name === 'associativos' && window.FinModule) window.FinModule.init();
+}
+
+document.querySelectorAll('.hub-card').forEach(btn=>{
+  btn.addEventListener('click', ()=> showScreen(btn.dataset.screen));
+});
+document.getElementById('backToHub').addEventListener('click', ()=> showScreen('hub'));
+
+initAuth();
+
+</script>
+
+<script>
+
+(function(){
+
+// =========================================================
+// CONFIG
+// =========================================================
 const SHAREPOINT_URL = "https://splengbr.sharepoint.com/:x:/s/splengenharia/IQA4ouX82iGDQaAFCU0KnnvDARi-hpgpOxD5YTLp_BpS9K8?e=rDrnIV";
 const SHEET_PAINEL = "Painel Acompanhamento (3)";
 const SHEET_ESTRATEGICO = "Acomp Estratégico";
@@ -186,9 +512,9 @@ const PANEL_GROUPS = ['Quitado','Direto - Sem Correção','Safra - Safrinha','Fi
   'Enviando simulação + Documentos','Sem contato','Permanecer Fluxo Direto','Pré Análise','Em Contato/negociação','Reprovados/Em distrato'];
 const RESOLVIDOS_LABELS = ['Quitado','Direto - Sem Correção','Safra - Safrinha','Financiaram','Em Financiamento','Acima 75%'];
 
-let msalInstance, account = null;
 let DATA = null, CLIENTS = null, ATEND = null;
-let STATE = { view:'gate', group:null, kind:null, client:null };
+let loaded = false;
+let STATE = { view:'panel', group:null, kind:null, client:null };
 
 // =========================================================
 // HELPERS
@@ -207,6 +533,28 @@ function brlCompact(n){
 function pct(n){ return (Number(n||0)*100).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1}) + '%'; }
 function numFmt(n){ return Number(n||0).toLocaleString('pt-BR'); }
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function showAqLoading(step){
+  document.getElementById('aq-loading').style.display = 'flex';
+  document.getElementById('aq-view-panel').style.display = 'none';
+  document.getElementById('aqLoadStep').textContent = step;
+}
+function setAqLoadingStep(step){
+  const el = document.getElementById('aqLoadStep');
+  if (el) el.textContent = step;
+}
+function hideAqLoading(){
+  document.getElementById('aq-loading').style.display = 'none';
+  document.getElementById('aq-view-panel').style.display = '';
+}
+function showAqError(e){
+  document.getElementById('aq-loading').innerHTML = `
+    <div class="icon">⚠️</div><h2>Não consegui carregar os dados</h2>
+    <p>Pode ser permissão faltando, o link do SharePoint mudou, nome de aba diferente, ou a Microsoft demorou demais pra responder (comum na primeira leitura do dia). Detalhe técnico abaixo:</p>
+    <div class="err-box">${esc(e && e.message ? e.message : String(e))}</div>
+    <button class="retry-btn" id="aqRetryBtn">Tentar de novo</button>
+  `;
+  document.getElementById('aqRetryBtn').addEventListener('click', loadAllData);
+}
 function norm(s){ return String(s||'').replace(/\s+/g,' ').trim().toLowerCase(); }
 function agingClass(aging){
   const s = String(aging||'').trim();
@@ -242,100 +590,7 @@ function colIndex(header, ...names){
   }
   return -1;
 }
-function gateHtml({icon, title, body, extra=''}){
-  return `<div class="icon">${icon}</div><h2>${title}</h2><p>${body}</p>${extra}`;
-}
-function setGate(html){ document.getElementById('gateContent').innerHTML = html; }
 
-// =========================================================
-// AUTH
-// =========================================================
-async function initAuth(){
-  if (typeof msal === 'undefined'){
-    setGate(gateHtml({
-      icon:'⚠️',
-      title:'Biblioteca de login não carregou',
-      body:'O arquivo msal-browser.min.js não foi encontrado. Confirma se ele foi enviado pro GitHub junto com o index.html, na mesma pasta.',
-    }));
-    return;
-  }
-  try{
-    msalInstance = new msal.PublicClientApplication(MSAL_CONFIG);
-    await msalInstance.initialize();
-
-    const resp = await msalInstance.handleRedirectPromise();
-    if (resp && resp.account) account = resp.account;
-
-    const accounts = msalInstance.getAllAccounts();
-    if (!account && accounts.length > 0) account = accounts[0];
-
-    if (account){
-      msalInstance.setActiveAccount(account);
-      document.getElementById('topActions').style.display = 'flex';
-      document.getElementById('whoAmI').textContent = account.username || '';
-      loadAllData();
-    } else {
-      showLoginScreen();
-    }
-  } catch(e){
-    showAuthError(e);
-  }
-}
-
-function showLoginScreen(){
-  setGate(gateHtml({
-    icon:'🔐',
-    title:'Entrar com sua conta Microsoft',
-    body:'O dashboard busca os dados direto da planilha no SharePoint, com a sua permissão de acesso. Você usa seu login normal da SPL.',
-    extra:`<button class="ms-btn" id="loginBtn">
-      <svg class="ms-logo" viewBox="0 0 21 21"><rect x="1" y="1" width="9" height="9" fill="#f25022"/><rect x="11" y="1" width="9" height="9" fill="#7fba00"/><rect x="1" y="11" width="9" height="9" fill="#00a4ef"/><rect x="11" y="11" width="9" height="9" fill="#ffb900"/></svg>
-      Entrar com Microsoft
-    </button>`
-  }));
-  document.getElementById('loginBtn').addEventListener('click', doLogin);
-}
-
-async function doLogin(){
-  try{
-    setGate(gateHtml({icon:'⏳', title:'Abrindo login...', body:'Uma janela da Microsoft deve abrir.'}));
-    const resp = await msalInstance.loginPopup({ scopes: GRAPH_SCOPES });
-    account = resp.account;
-    msalInstance.setActiveAccount(account);
-    document.getElementById('topActions').style.display = 'flex';
-    document.getElementById('whoAmI').textContent = account.username || '';
-    loadAllData();
-  } catch(e){
-    showAuthError(e);
-  }
-}
-
-async function getToken(){
-  const req = { scopes: GRAPH_SCOPES, account };
-  try{
-    const res = await msalInstance.acquireTokenSilent(req);
-    return res.accessToken;
-  } catch(e){
-    const res = await msalInstance.acquireTokenPopup(req);
-    return res.accessToken;
-  }
-}
-
-function showAuthError(e){
-  setGate(gateHtml({
-    icon:'⚠️',
-    title:'Não consegui entrar',
-    body:'Aconteceu um erro durante o login. Detalhe técnico abaixo — me manda print se for pedir ajuda.',
-    extra:`<div class="err-box">${esc(e && e.message ? e.message : String(e))}</div>
-      <button class="retry-btn" id="retryLoginBtn">Tentar de novo</button>`
-  }));
-  const btn = document.getElementById('retryLoginBtn');
-  if (btn) btn.addEventListener('click', showLoginScreen);
-}
-
-document.getElementById('logoutBtn').addEventListener('click', ()=>{
-  msalInstance.logoutPopup().catch(()=>{});
-});
-document.getElementById('refreshBtn').addEventListener('click', ()=> loadAllData());
 
 // =========================================================
 // GRAPH DATA FETCH
@@ -374,12 +629,11 @@ async function graphPost(url, token, body){
 }
 
 async function loadAllData(){
-  showView('gate');
-  setGate(`<div class="spinner"></div><h2>Carregando dados...</h2><p id="loadStep" class="step">Conectando ao SharePoint...</p>`);
-  const setStep = (t) => { const el = document.getElementById('loadStep'); if (el) el.textContent = t; };
+  showAqLoading('Conectando ao SharePoint...');
+  const setStep = (t) => setAqLoadingStep(t);
 
   try{
-    const token = await getToken();
+    const token = await window.SharedAuth.getToken();
 
     setStep('Localizando a planilha...');
     const shareId = encodeSharingUrl(SHAREPOINT_URL);
@@ -412,18 +666,12 @@ async function loadAllData(){
     }
 
     STATE = { view:'panel', group:null, kind:null, client:null };
+    loaded = true;
+    hideAqLoading();
     renderPanel();
     showView('panel');
   } catch(e){
-    setGate(gateHtml({
-      icon:'⚠️',
-      title:'Não consegui carregar os dados',
-      body:'Pode ser permissão faltando, o link do SharePoint mudou, nome de aba diferente, ou a Microsoft demorou demais pra responder (comum na primeira leitura do dia). Detalhe técnico abaixo:',
-      extra:`<div class="err-box">${esc(e && e.message ? e.message : String(e))}</div>
-        <button class="retry-btn" id="retryLoadBtn">Tentar de novo</button>`
-    }));
-    const btn = document.getElementById('retryLoadBtn');
-    if (btn) btn.addEventListener('click', loadAllData);
+    showAqError(e);
   }
 }
 
@@ -558,9 +806,8 @@ function parseAtendimentos(values){
   });
   return out;
 }
-</script>
 
-<script id="ui-logic">
+
 // =========================================================
 // VIEW 1: PANEL
 // =========================================================
@@ -608,7 +855,7 @@ function renderPanel(){
   <div class="quad-grid">${DATA.nao_resolvidos.map(i=>quadHtml(i,'unresolved')).join('')}</div>
   <p class="foot-note">Dados ao vivo do SharePoint · classificação por grupo principal (sub-etapas internas não exibidas nesta versão).</p>
   `;
-  document.getElementById('view-panel').innerHTML = html;
+  document.getElementById('aq-view-panel').innerHTML = html;
 
   document.querySelectorAll('.quad').forEach(btn=>{
     btn.addEventListener('click', ()=> goToGroup(btn.dataset.group, btn.dataset.kind));
@@ -661,7 +908,7 @@ function renderGroup(){
   <input type="text" class="search-box" id="clientSearch" placeholder="Buscar cliente ou unidade...">
   <div class="client-list" id="clientListWrap">${clients.map(clientRowHtml).join('') || '<div class="empty-state">Nenhum cliente neste grupo.</div>'}</div>
   `;
-  document.getElementById('view-group').innerHTML = html;
+  document.getElementById('aq-view-group').innerHTML = html;
   wireClientRows();
 
   document.getElementById('clientSearch').addEventListener('input', (e)=>{
@@ -715,7 +962,7 @@ function renderClient(){
       </div>`).join('') : '<div class="empty-state">Nenhum atendimento registrado para essa unidade.</div>'}
   </div>
   `;
-  document.getElementById('view-client').innerHTML = html;
+  document.getElementById('aq-view-client').innerHTML = html;
 }
 
 // =========================================================
@@ -724,21 +971,22 @@ function renderClient(){
 function showView(name){
   STATE.view = name;
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
-  document.getElementById('view-'+name).classList.add('active');
+  document.getElementById('aq-view-'+name).classList.add('active');
   window.scrollTo({top:0, behavior:'instant'});
   renderCrumb();
 }
 
 function renderCrumb(){
-  const crumb = document.getElementById('crumb');
-  if (STATE.view === 'gate' || STATE.view === 'panel'){ crumb.innerHTML = ''; return; }
+  const crumb = document.getElementById('moduleCrumb');
+  if (!crumb) return;
+  if (STATE.view === 'panel'){ crumb.innerHTML = ''; return; }
   if (STATE.view === 'group'){
-    crumb.innerHTML = `<button id="crumbPanel">Painel</button><span class="sep">/</span><span class="now">${esc(STATE.group)}</span>`;
+    crumb.innerHTML = `<span class="sep">/</span><button id="crumbPanel">Painel</button><span class="sep">/</span><span class="now">${esc(STATE.group)}</span>`;
     document.getElementById('crumbPanel').addEventListener('click', ()=> showView('panel'));
     return;
   }
   if (STATE.view === 'client'){
-    crumb.innerHTML = `<button id="crumbPanel">Painel</button><span class="sep">/</span><button id="crumbGroup">${esc(STATE.group)}</button><span class="sep">/</span><span class="now">${esc(STATE.client.cliente.split(' ').slice(0,2).join(' '))}</span>`;
+    crumb.innerHTML = `<span class="sep">/</span><button id="crumbPanel">Painel</button><span class="sep">/</span><button id="crumbGroup">${esc(STATE.group)}</button><span class="sep">/</span><span class="now">${esc(STATE.client.cliente.split(' ').slice(0,2).join(' '))}</span>`;
     document.getElementById('crumbPanel').addEventListener('click', ()=> showView('panel'));
     document.getElementById('crumbGroup').addEventListener('click', ()=> showView('group'));
     return;
@@ -746,6 +994,275 @@ function renderCrumb(){
 }
 
 initAuth();
+
+
+function enter(){
+  if (!loaded){ loadAllData(); }
+  else { STATE = { view:'panel', group:null, kind:null, client:null }; renderPanel(); showView('panel'); }
+}
+window.AcquaModule = { enter, reload: loadAllData };
+})();
+
+</script>
+
+<script>
+
+const DATA = JSON.parse(document.getElementById('fin-report-data').textContent);
+const EMPS = DATA.EMPS;
+const EM_ANDAMENTO = new Set(['Vero','Prisma','Botaniq Home','Brisas']);
+
+function brl(n, dec=0){
+  n = Number(n||0);
+  const neg = n<0; n = Math.abs(n);
+  return (neg?'-R$ ':'R$ ') + n.toLocaleString('pt-BR',{minimumFractionDigits:dec, maximumFractionDigits:dec});
+}
+function brlM(n){ return (n/1e6).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}) + 'M'; }
+function numFmt(n){ return Number(n||0).toLocaleString('pt-BR'); }
+function toBr(ymd){ const [y,m,d]=ymd.split('-'); return `${d}/${m}/${y}`; }
+
+// ---- header ref date ----
+(function(){
+  const ref = DATA.periodo_ref;
+  const el = document.getElementById('refDatePill');
+  if(!ref){ el.textContent='—'; return; }
+  el.textContent = ref.min===ref.max ? toBr(ref.min) : `${toBr(ref.min)} a ${toBr(ref.max)}`;
+})();
+
+// =========================================================
+// TAB: RESUMO
+// =========================================================
+function renderResumo(){
+  const t = DATA.onepage_totais;
+  const proxWeeks = DATA.pivot_semanas.slice(0,4).reduce((a,w)=>a+(DATA.pivot_totals[w]||0),0);
+  const pontosAtencao = DATA.top_parados_analise.concat(DATA.top_parados_assinatura).filter(x=>x.dias>60).length + DATA.vence_hoje.length;
+
+  let html = `
+  <h2 class="sec"><span class="bar"></span>One page</h2>
+  <p class="lede">Consolidado dos 7 empreendimentos, com foco na previsibilidade de entrada de caixa e nos pontos que exigem ação do time.</p>
+  <div class="kpi-grid">
+    <div class="kpi"><div class="label">Carteira vendida</div><div class="value mono">${brl(t.vendidos.valor)}</div><div class="sub">${numFmt(t.vendidos.qtde)} unidades</div></div>
+    <div class="kpi rust"><div class="label">Em registro</div><div class="value mono">${brl(t.registro.valor)}</div><div class="sub">${numFmt(t.registro.qtde)} un. — entrada de caixa mais próxima</div></div>
+    <div class="kpi"><div class="label">Financ. assinatura</div><div class="value mono">${brl(t.assinatura.valor)}</div><div class="sub">${numFmt(t.assinatura.qtde)} unidades</div></div>
+    <div class="kpi"><div class="label">Financ. análise</div><div class="value mono">${brl(t.analise.valor)}</div><div class="sub">${numFmt(t.analise.qtde)} unidades</div></div>
+    <div class="kpi green"><div class="label">Recurso liberado</div><div class="value mono">${brl(t.liberado.valor)}</div><div class="sub">Já ingressou no caixa</div></div>
+    <div class="kpi red"><div class="label">Em distrato</div><div class="value mono">${brl(t.distrato.valor)}</div><div class="sub">${numFmt(t.distrato.qtde)} un. — risco de saída</div></div>
+    <div class="kpi rust"><div class="label">Próx. 4 semanas registro</div><div class="value mono">${brl(proxWeeks)}</div><div class="sub">Previsão a receber</div></div>
+    <div class="kpi red"><div class="label">Pontos de atenção</div><div class="value mono">${pontosAtencao}</div><div class="sub">&gt;60 dias parados ou prazo vencendo</div></div>
+  </div>
+
+  <h2 class="sec"><span class="bar"></span>Situação por empreendimento</h2>
+  <div class="table-scroll"><table class="wide">
+    <thead><tr>
+      <th class="name-col">Empreend.</th><th class="num">Status</th><th class="num">Vendidos</th>
+      <th class="num">Em registro</th><th class="num">Financ. assin.</th><th class="num">Financ. análise</th><th class="num">Em distrato</th>
+    </tr></thead>
+    <tbody>
+      ${EMPS.map(emp=>{
+        const o = DATA.onepage[emp];
+        const st = EM_ANDAMENTO.has(emp) ? 'andamento' : 'concluido';
+        const stLabel = EM_ANDAMENTO.has(emp) ? 'Em andamento' : 'Concluído';
+        return `<tr>
+          <td class="name-col">${emp}</td>
+          <td class="num"><span class="status-chip ${st}">${stLabel}</span></td>
+          <td class="num">${numFmt(o.total_vendidos.qtde)}<br><span class="mono">${brl(o.total_vendidos.valor)}</span></td>
+          <td class="num">${numFmt(o.registro.qtde)} un.<br><span class="mono">${brl(o.registro.valor)}</span></td>
+          <td class="num">${numFmt(o.assinatura.qtde)} un.<br><span class="mono">${brl(o.assinatura.valor)}</span></td>
+          <td class="num">${numFmt(o.analise.qtde)} un.<br><span class="mono">${brl(o.analise.valor)}</span></td>
+          <td class="num">${numFmt(o.distrato.qtde)} un.<br><span class="mono">${brl(o.distrato.valor)}</span></td>
+        </tr>`;
+      }).join('')}
+    </tbody>
+  </table></div>
+
+  <h2 class="sec"><span class="bar"></span>Carteira em aberto por status</h2>
+  <div class="card"><div class="chart-wrap"><canvas id="pieChart"></canvas></div></div>
+
+  <h2 class="sec"><span class="bar"></span>O que exige atenção imediata</h2>
+  ${DATA.vence_hoje.length>0 ? `
+    <div class="callout red">
+      <strong>${DATA.vence_hoje.length} caso(s)</strong> com prazo prometido vencendo na própria data de envio (risco iminente de novo atraso):
+      <ul>${DATA.vence_hoje.map(f=>`<li>${f.emp} — ${f.cliente} (${f.etapa}): prazo até ${f.prazo_prometido}.</li>`).join('')}</ul>
+    </div>` : `<div class="callout green">Nenhum prazo prometido vence exatamente na data deste envio.</div>`}
+  `;
+  document.getElementById('fin-tab-resumo').innerHTML = html;
+
+  const statusOrder = ['registro','assinatura','analise','distrato'];
+  const statusLabels = {registro:'Registro', assinatura:'Financ. Assinatura', analise:'Financ. Análise', distrato:'Em Distrato'};
+  const statusColors = {registro:'#1F3864', assinatura:'#C55A11', analise:'#8FAF3E', distrato:'#B23A2E'};
+  const pieVals = statusOrder.map(k=>t[k].valor);
+  new Chart(document.getElementById('pieChart'), {
+    type:'doughnut',
+    data:{ labels:statusOrder.map(k=>statusLabels[k]),
+      datasets:[{ data:pieVals, backgroundColor:statusOrder.map(k=>statusColors[k]), borderWidth:2, borderColor:'#fff' }] },
+    options:{ maintainAspectRatio:false, plugins:{ legend:{position:'bottom', labels:{boxWidth:11, font:{size:10.5, family:'IBM Plex Sans'}}},
+      tooltip:{ callbacks:{ label:(ctx)=> ` ${ctx.label}: ${brl(ctx.parsed)}` } } } }
+  });
+}
+
+// =========================================================
+// TAB: EVOLUÇÃO
+// =========================================================
+function renderEvolucao(){
+  const botaniqTot = DATA.recorrentes.filter(r=>r.emp==='Botaniq Home').length;
+  const botaniq55 = DATA.recorrentes.filter(r=>r.emp==='Botaniq Home' && r.ocorrencias===5).length;
+
+  let html = `
+  <h2 class="sec"><span class="bar"></span>Evolução consolidada</h2>
+  <p class="lede">Movimentação de valor por etapa nas últimas leituras disponíveis (nem todos os envios são semanais).</p>
+  <div class="card"><div class="chart-wrap tall"><canvas id="lineChart"></canvas></div></div>
+
+  <h2 class="sec"><span class="bar"></span>Leitura atual vs. ~4 leituras atrás</h2>
+  <div class="table-scroll"><table class="wide">
+    <thead><tr><th class="name-col">Empreend.</th><th class="num">Registro atual</th><th class="num">Registro antes</th>
+      <th class="num">Δ Registro</th><th class="num">Análise atual</th><th class="num">Δ Análise</th></tr></thead>
+    <tbody>
+      ${DATA.evo_table.map(e=>{
+        const dReg = e.registro_cur.valor - e.registro_old.valor;
+        const dAna = e.analise_cur.valor - e.analise_old.valor;
+        return `<tr>
+          <td class="name-col">${e.emp}</td>
+          <td class="num mono">${brl(e.registro_cur.valor)}</td>
+          <td class="num mono" style="color:var(--ink-soft)">${brl(e.registro_old.valor)}</td>
+          <td class="num mono flag ${dReg>=0?'':'crit'}" style="color:${dReg>=0?'var(--green)':'var(--red)'}">${dReg>=0?'+':''}${brl(dReg)}</td>
+          <td class="num mono">${brl(e.analise_cur.valor)}</td>
+          <td class="num mono flag" style="color:${dAna>=0?'var(--red)':'var(--green)'}">${dAna>=0?'+':''}${brl(dAna)}</td>
+        </tr>`;
+      }).join('')}
+    </tbody>
+  </table></div>
+  <p class="foot-note">Δ Registro positivo = mais unidades avançando rumo à entrada de caixa. Δ Análise positivo (vermelho) = acúmulo parado na fase inicial.</p>
+
+  <h2 class="sec"><span class="bar"></span>Problemas recorrentes — travados em Financiamento Análise</h2>
+  <p class="lede">Clientes presentes em 3 ou mais das últimas 5 leituras de "Financiamento Análise".</p>
+  ${botaniq55>0 ? `<div class="callout red"><strong>Destaque:</strong> Botaniq Home tem ${botaniq55} cliente(s) em TODAS as últimas 5 leituras — gargalo estrutural, não pontual.</div>` : ''}
+  <div class="table-scroll"><table class="wide">
+    <thead><tr><th class="name-col">Empreend.</th><th class="num">Cliente</th><th class="num">Aparições</th><th class="num">Dias parado</th><th class="num">Motivo (síntese)</th></tr></thead>
+    <tbody>
+      ${DATA.recorrentes.filter(r=>r.sintese!=='(não presente na leitura mais recente)').map(r=>`<tr>
+        <td class="name-col">${r.emp}</td>
+        <td class="num">${r.cliente}</td>
+        <td class="num flag ${r.ocorrencias===5?'crit':''}">${r.ocorrencias}/5</td>
+        <td class="num mono flag ${r.dias>90?'crit':''}">${r.dias ?? '—'}</td>
+        <td style="white-space:normal; min-width:220px;">${r.sintese || '—'}</td>
+      </tr>`).join('')}
+    </tbody>
+  </table></div>
+  `;
+  document.getElementById('fin-tab-evolucao').innerHTML = html;
+
+  const agg = DATA.evolucao_agg;
+  new Chart(document.getElementById('lineChart'), {
+    type:'line',
+    data:{ labels: agg.map(a=>a.label),
+      datasets:[
+        {label:'Registro', data:agg.map(a=>a.registro_valor/1e6), borderColor:'#1F3864', backgroundColor:'#1F3864', tension:.3, pointRadius:3},
+        {label:'Financ. Assinatura', data:agg.map(a=>a.assinatura_valor/1e6), borderColor:'#C55A11', backgroundColor:'#C55A11', tension:.3, pointRadius:3},
+        {label:'Financ. Análise', data:agg.map(a=>a.analise_valor/1e6), borderColor:'#8FAF3E', backgroundColor:'#8FAF3E', tension:.3, pointRadius:3},
+      ]},
+    options:{ maintainAspectRatio:false,
+      plugins:{ legend:{position:'bottom', labels:{boxWidth:11, font:{size:10, family:'IBM Plex Sans'}}},
+        tooltip:{ callbacks:{ label:(ctx)=> ` ${ctx.dataset.label}: R$ ${ctx.parsed.y.toFixed(2)}M` } } },
+      scales:{ y:{ ticks:{ callback:(v)=> v+'M', font:{size:10} } }, x:{ ticks:{font:{size:10.5}} } } }
+  });
+}
+
+// =========================================================
+// TAB: CRÍTICOS
+// =========================================================
+function criticosTable(list){
+  return `<div class="table-scroll"><table class="wide">
+    <thead><tr><th class="name-col">Empreend.</th><th class="num">Cliente</th><th class="num">Dias</th><th>Observação</th></tr></thead>
+    <tbody>${list.map(x=>`<tr>
+      <td class="name-col">${x.emp}</td>
+      <td class="num">${x.cliente}</td>
+      <td class="num mono flag ${x.dias>90?'crit':'warn'}">${x.dias}</td>
+      <td style="white-space:normal; min-width:200px;">${(x.obs||'').slice(0,180)}${(x.obs||'').length>180?'...':''}</td>
+    </tr>`).join('')}</tbody>
+  </table></div>`;
+}
+function renderCriticos(){
+  let html = `
+  <h2 class="sec"><span class="bar"></span>Mais dias parados na mesma etapa</h2>
+  <div class="subhead">Financiamento Análise</div>
+  ${criticosTable(DATA.top_parados_analise)}
+  <div class="subhead">Financiamento Assinatura</div>
+  ${criticosTable(DATA.top_parados_assinatura)}
+
+  <h2 class="sec"><span class="bar"></span>Falha operacional: prazo já vencido</h2>
+  <p class="lede">Última data "até DD/MM" citada na observação, comparada à data de envio do e-mail daquele empreendimento.</p>
+  ${DATA.falhas_operacionais.length>0 ? `
+    <div class="callout red"><strong>${DATA.falhas_operacionais.length} caso(s)</strong> com prazo já vencido na leitura mais recente:</div>
+    ${criticosTable(DATA.falhas_operacionais.map(f=>({emp:f.emp, cliente:f.cliente, dias:f.dias_parado ?? '—', obs:`Prazo prometido: ${f.prazo_prometido}. ${f.obs||''}`})))}
+  ` : `<div class="callout green">Nenhum caso identificado na leitura mais recente — prazos citados ainda não haviam vencido no envio.</div>`}
+
+  ${DATA.vence_hoje.length>0 ? `
+    <h2 class="sec"><span class="bar"></span>Vencendo na própria data do envio</h2>
+    ${criticosTable(DATA.vence_hoje.map(f=>({emp:f.emp, cliente:f.cliente, dias:f.dias_parado ?? '—', obs:`Prazo prometido: ${f.prazo_prometido}. ${f.obs||''}`})))}
+  ` : ''}
+  `;
+  document.getElementById('fin-tab-criticos').innerHTML = html;
+}
+
+// =========================================================
+// TAB: PREVISÃO
+// =========================================================
+function renderPrevisao(){
+  const weeks = DATA.pivot_semanas;
+  const totalGeral = weeks.reduce((a,w)=>a+DATA.pivot_totals[w],0);
+  let html = `
+  <h2 class="sec"><span class="bar"></span>Previsão semanal de registro</h2>
+  <p class="lede">Empreendimentos nas linhas, semanas nas colunas. Valores em R$ a receber, com totalizador.</p>
+  <div class="card"><div class="chart-wrap"><canvas id="barChart"></canvas></div></div>
+
+  <div class="table-scroll"><table class="wide">
+    <thead><tr><th class="name-col">Empreend.</th>${weeks.map(w=>`<th class="num">${w}</th>`).join('')}</tr></thead>
+    <tbody>
+      ${EMPS.map(emp=>`<tr>
+        <td class="name-col">${emp}</td>
+        ${weeks.map(w=>{ const v=(DATA.pivot[emp]&&DATA.pivot[emp][w])||0; return `<td class="num mono" style="${v>0?'':'color:#C7CCD3'}">${v>0?brl(v):'—'}</td>`; }).join('')}
+      </tr>`).join('')}
+      <tr style="background:var(--rust-light); font-weight:700;">
+        <td class="name-col" style="background:var(--rust-light);">TOTAL</td>
+        ${weeks.map(w=>`<td class="num mono">${brl(DATA.pivot_totals[w])}</td>`).join('')}
+      </tr>
+    </tbody>
+  </table></div>
+  <p class="foot-note"><strong>Total geral previsto:</strong> ${brl(totalGeral)}. As semanas partem da data de envio de cada e-mail — como os envios não são simultâneos, algumas colunas podem ficar sem valor para determinados empreendimentos.</p>
+  `;
+  document.getElementById('fin-tab-previsao').innerHTML = html;
+
+  new Chart(document.getElementById('barChart'), {
+    type:'bar',
+    data:{ labels: weeks, datasets:[{ label:'Previsão (R$ mi)', data: weeks.map(w=>DATA.pivot_totals[w]/1e6), backgroundColor:'#1F3864', borderRadius:4 }] },
+    options:{ maintainAspectRatio:false, plugins:{legend:{display:false},
+      tooltip:{ callbacks:{ label:(ctx)=> ` R$ ${ctx.parsed.y.toFixed(2)}M` } }},
+      scales:{ y:{ ticks:{ callback:(v)=>v+'M', font:{size:10} } }, x:{ ticks:{ font:{size:9}, maxRotation:60, minRotation:60 } } } }
+  });
+}
+
+// =========================================================
+// TABS
+// =========================================================
+const renderers = { resumo: renderResumo, evolucao: renderEvolucao, criticos: renderCriticos, previsao: renderPrevisao };
+const rendered = {};
+let finInited = false;
+function initFin(){
+  if (finInited) return;
+  finInited = true;
+  document.querySelectorAll('#finTabbar button').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const tab = btn.dataset.tab;
+      document.querySelectorAll('#finTabbar button').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      document.querySelectorAll('#screen-associativos .tabpanel').forEach(p=>p.classList.remove('active'));
+      document.getElementById('fin-tab-'+tab).classList.add('active');
+      if(!rendered[tab]){ renderers[tab](); rendered[tab]=true; }
+    });
+  });
+  renderResumo(); rendered.resumo = true;
+}
+window.FinModule = { init: initFin };
+
 </script>
 </body>
 </html>
