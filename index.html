@@ -862,6 +862,10 @@ function renderPanel(){
   const totalClientes = rt.clientes + nt.clientes;
 
   const html = `
+  <h2 class="sec"><span class="bar"></span>Buscar cliente</h2>
+  <input type="text" class="search-box" id="globalClientSearch" placeholder="Nome do cliente ou unidade...">
+  <div id="globalSearchResults"></div>
+
   <h2 class="sec"><span class="bar"></span>Panorama do empreendimento</h2>
   <div class="kpi-strip">
     <div class="kpi-mini"><div class="v">${numFmt(h.unidades_totais)}</div><div class="l">Unidades totais</div></div>
@@ -891,6 +895,23 @@ function renderPanel(){
 
   document.querySelectorAll('.quad').forEach(btn=>{
     btn.addEventListener('click', ()=> goToGroup(btn.dataset.group, btn.dataset.kind));
+  });
+
+  document.getElementById('globalClientSearch').addEventListener('input', (e)=>{
+    const q = e.target.value.trim().toLowerCase();
+    const resultsEl = document.getElementById('globalSearchResults');
+    if (q.length < 2){ resultsEl.innerHTML = ''; return; }
+    const matches = CLIENTS.filter(c => c.cliente.toLowerCase().includes(q) || String(c.unidade).toLowerCase().includes(q)).slice(0, 8);
+    resultsEl.innerHTML = matches.map(c => `<button class="client-row" data-unidade="${esc(c.unidade)}" style="margin-bottom:8px;">
+      <div style="flex:1; min-width:0;">
+        <div class="name">${esc(c.cliente)}</div>
+        <div class="meta"><span>Un. <b>${esc(c.unidade)}</b></span><span>${esc(c.grupo || '—')}</span></div>
+      </div>
+      <span class="chev-right">›</span>
+    </button>`).join('') || '<div class="empty-state">Nenhum cliente encontrado.</div>';
+    resultsEl.querySelectorAll('.client-row').forEach(btn=>{
+      btn.addEventListener('click', ()=> goToClientFromPanel(btn.dataset.unidade));
+    });
   });
 
   if (window._chart) window._chart.destroy();
@@ -1022,6 +1043,20 @@ function wireClientRows(){
 // =========================================================
 // VIEW 3: CLIENT -> ATENDIMENTOS TIMELINE
 // =========================================================
+function kindForGroup(grupo){
+  if (DATA.resolvidos.some(i => i.situacao === grupo)) return 'resolved';
+  if (DATA.nao_resolvidos.some(i => i.situacao === grupo)) return 'unresolved';
+  return 'unresolved';
+}
+
+function goToClientFromPanel(unidade){
+  const client = CLIENTS.find(c => String(c.unidade) === unidade);
+  if (!client) return;
+  STATE = { view:'client', group: client.grupo, kind: kindForGroup(client.grupo), client };
+  renderClient();
+  showView('client');
+}
+
 function goToClient(unidade){
   const client = CLIENTS.find(c => String(c.unidade) === unidade);
   STATE.view = 'client'; STATE.client = client;
