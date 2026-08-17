@@ -913,11 +913,58 @@ function goToGroup(group, kind){
   showView('group');
 }
 
+function parseAtendDateBr(str){
+  if (!str) return null;
+  const parts = String(str).split('/');
+  if (parts.length !== 3) return null;
+  const d = parseInt(parts[0],10), m = parseInt(parts[1],10), y = parseInt(parts[2],10);
+  if (!d || !m || !y) return null;
+  return new Date(y, m-1, d);
+}
+
+const SLA_PATTERNS = {
+  'Financiaram': /assinatura de contrato|contrato assinado/i,
+  'Em Financiamento': /(aprovad[ao][^.]{0,60}(confirma[cç][aã]o|valores confirmados)|confirma[cç][aã]o de valores)/i,
+};
+
+function computeSLA(unidade, grupo){
+  const pattern = SLA_PATTERNS[grupo];
+  if (!pattern) return null;
+  const hist = ATEND[unidade] || [];
+  const matches = hist.filter(a => pattern.test(a.observacao || ''));
+  if (!matches.length) return null;
+  const dates = matches.map(a => parseAtendDateBr(a.data)).filter(Boolean);
+  if (!dates.length) return null;
+  const earliest = new Date(Math.min(...dates.map(d=>d.getTime())));
+  const today = new Date();
+  return Math.max(0, Math.floor((today - earliest) / (1000*60*60*24)));
+}
+
+function slaChipClass(dias){
+  if (dias == null) return '';
+  if (dias > 60) return 'crit';
+  if (dias > 30) return 'warn';
+  return 'ok';
+}
+
 function clientRowHtml(c){
   const ac = agingClass(c.aging);
   const afCls = c.grupo === 'Permanecer Fluxo Direto' ? afClass(c.status) : '';
   const pct = c.pct_recebido != null ? (c.pct_recebido*100).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1}) + '%' : null;
-  return `<button class="client-row ${afCls}" data-unidade="${esc(c.unidade)}">
+  const trackSLA = SLA_PATTERNS.hasOwnProperty(c.grupo);
+  const isQuitado = c.grupo === 'Financiaram' && c.pct_recebido != null && c.pct_recebido >= 1;
+  let slaHtml = '';
+  let rowCls = afCls;
+  if (trackSLA){
+    if (isQuitado){
+      rowCls = (rowCls + ' af-apto').trim();
+      slaHtml = `<span class="aging-chip ok">Recebido 100%</span>`;
+    } else {
+      const sla = computeSLA(c.unidade, c.grupo);
+      if (sla != null) slaHtml = `<span class="aging-chip ${slaChipClass(sla)}">SLA: ${sla}d</span>`;
+    }
+  }
+  return `<button class="client-row ${rowCls}" data-unidade="${esc(c.unidade)}">
     <div style="flex:1; min-width:0;">
       <div class="name">${esc(c.cliente)}</div>
       <div class="meta">
@@ -927,19 +974,31 @@ function clientRowHtml(c){
         ${pct ? `<span>Recebido <b>${pct}</b></span>` : ''}
         ${c.cca ? `<span>CCA: ${esc(c.cca)}</span>` : ''}
         ${c.aging ? `<span class="aging-chip ${ac}">Aging: ${esc(c.aging)}</span>` : ''}
+        ${slaHtml}
       </div>
     </div>
     <span class="chev-right">›</span>
   </button>`;
 }
 
+function sortForGroup(clients, grupo){
+  if (!SLA_PATTERNS.hasOwnProperty(grupo)) return clients;
+  return clients.slice().sort((a,b) => {
+    const aQuitado = grupo === 'Financiaram' && a.pct_recebido != null && a.pct_recebido >= 1;
+    const bQuitado = grupo === 'Financiaram' && b.pct_recebido != null && b.pct_recebido >= 1;
+    const aSla = aQuitado ? -1 : (computeSLA(a.unidade, grupo) ?? -1);
+    const bSla = bQuitado ? -1 : (computeSLA(b.unidade, grupo) ?? -1);
+    return bSla - aSla;
+  });
+}
+
 function renderGroup(){
-  const clients = CLIENTS.filter(c => c.grupo === STATE.group);
+  const clients = sortForGroup(CLIENTS.filter(c => c.grupo === STATE.group), STATE.group);
   const kindLabel = STATE.kind === 'resolved' ? 'Resolvidos' : 'Não resolvidos';
 
   const html = `
   <h2 class="sec ${STATE.kind==='resolved'?'green':'red'}"><span class="bar"></span>${esc(STATE.group)}</h2>
-  <p class="foot-note" style="margin-top:0; text-align:left;">${kindLabel} · ${clients.length} cliente${clients.length===1?'':'s'}</p>
+  <p class="foot-note" style="margin-top:0; text-align:left;">${kindLabel} · ${clients.length} cliente${clients.length===1?'':'s'}${SLA_PATTERNS.hasOwnProperty(STATE.group) ? ' · ordenado por SLA (maior primeiro)' : ''}</p>
   <input type="text" class="search-box" id="clientSearch" placeholder="Buscar cliente ou unidade...">
   <div class="client-list" id="clientListWrap">${clients.map(clientRowHtml).join('') || '<div class="empty-state">Nenhum cliente neste grupo.</div>'}</div>
   `;
@@ -975,6 +1034,17 @@ function renderClient(){
   const hist = (ATEND[c.unidade] || []);
   const ac = agingClass(c.aging);
   const pct = c.pct_recebido != null ? (c.pct_recebido*100).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1}) + '%' : '—';
+  const trackSLA = SLA_PATTERNS.hasOwnProperty(c.grupo);
+  const isQuitado = c.grupo === 'Financiaram' && c.pct_recebido != null && c.pct_recebido >= 1;
+  let slaField = '';
+  if (trackSLA){
+    if (isQuitado){
+      slaField = `<div><div class="field">SLA</div><div class="val"><span class="aging-chip ok">Recebido 100%</span></div></div>`;
+    } else {
+      const sla = computeSLA(c.unidade, c.grupo);
+      slaField = `<div><div class="field">SLA</div><div class="val">${sla!=null ? `<span class="aging-chip ${slaChipClass(sla)}">${sla} dias</span>` : '—'}</div></div>`;
+    }
+  }
 
   const html = `
   <div class="client-header">
@@ -987,6 +1057,7 @@ function renderClient(){
       <div><div class="field">% Recebido</div><div class="val">${pct}</div></div>
       <div><div class="field">CCA</div><div class="val">${c.cca ? esc(c.cca) : '—'}</div></div>
       <div><div class="field">Aging inadimplência</div><div class="val"><span class="aging-chip ${ac}">${c.aging!=null && c.aging!=='' ? esc(c.aging) : '—'}</span></div></div>
+      ${slaField}
     </div>
   </div>
 
